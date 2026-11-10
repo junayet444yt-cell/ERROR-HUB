@@ -7,7 +7,7 @@ ROOT = os.getcwd()
 datas = [(os.path.join(ROOT, "static"), "static")]
 binaries = []
 hidden = []
-for exe in ("ffmpeg.exe", "ffprobe.exe"):
+for exe in ("ffmpeg.exe", "ffprobe.exe", "deno.exe"):
     p = os.path.join(ROOT, "desktop", exe)
     if os.path.exists(p):
         binaries.append((p, "."))

@@ -23,7 +23,7 @@ for c in (os.path.join(exe_dir, "cookies.txt"), os.path.join(home, "cookies.txt"
         os.environ["COOKIES_FILE"] = c
         break
 os.environ.update({"VCACHE": os.path.join(home, "cache"), "RATE_MAX": "100000", "MAX_JOBS": "3",
-                   "DESKTOP_IDLE_EXIT": "1800", "STATIC_DIR": res("static")})
+                   "DESKTOP_IDLE_EXIT": "1800", "BLOCKED_SITES": "none", "STATIC_DIR": res("static")})
 
 import app as server  # noqa: E402  (after the environment is ready)
 

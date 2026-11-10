@@ -32,9 +32,9 @@ COOKIES = os.environ.get("COOKIES_FILE") or os.path.join(os.path.dirname(os.path
 CACHE = os.environ.get("VCACHE") or os.path.join(tempfile.gettempdir(), "vcache")  # works on Linux, Windows and Android
 os.makedirs(CACHE, exist_ok=True)
 
-# Sites that are not allowed: YouTube. Facebook, Instagram, TikTok and X work.
-# Change with the BLOCKED_SITES setting (comma separated, "none" = block nothing).
-_default_block = "youtube.com,youtu.be,youtube-nocookie.com"
+# No site is blocked by default (YouTube, adult sites, everything is allowed).
+# To block something set BLOCKED_SITES (comma separated, "none" = block nothing).
+_default_block = "none"
 _raw_block = os.environ.get("BLOCKED_SITES", _default_block).strip().lower()
 BLOCKED = tuple(d.strip() for d in _raw_block.split(",") if d.strip() and d.strip() != "none")
 BLOCKED_EXTRACTORS = tuple(sorted({d.split(".")[0] for d in BLOCKED})) or ("\0",)

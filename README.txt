@@ -4,7 +4,7 @@ ERROR HUB DOWNLODER - public-ready version
 WHAT IT DOES
 Paste a video link -> the video appears and plays -> Download button saves it.
 Works with most sites (TikTok, Twitter/X (x.com and twitter.com links), embed players, direct .mp4/.m3u8 links ...).
-Instagram videos/reels work (add cookies, see below). Facebook, Instagram, TikTok and X work. YouTube is not supported (blocked by BLOCKED_SITES).
+Instagram videos/reels work (add cookies, see below). Facebook, Instagram, TikTok and X work. YouTube and all other sites are allowed (BLOCKED_SITES defaults to none).
 Gear button (bottom right) > "Add background video" plays a video from your own device behind the page (not uploaded anywhere).
 Background: gear button (bottom right) = blur slider, darkness and floating embers.
 

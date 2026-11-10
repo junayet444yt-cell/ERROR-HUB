@@ -9,7 +9,7 @@ def start(port, cache_dir, static_dir, files_dir):
     if _started:
         return
     _started = True
-    os.environ.update({"VCACHE": cache_dir, "STATIC_DIR": static_dir, "RATE_MAX": "100000", "MAX_JOBS": "2", "HOME": files_dir})
+    os.environ.update({"VCACHE": cache_dir, "STATIC_DIR": static_dir, "RATE_MAX": "100000", "MAX_JOBS": "2", "HOME": files_dir, "BLOCKED_SITES": "none"})
     try:  # make sure HTTPS works on Android
         import certifi
         os.environ.setdefault("SSL_CERT_FILE", certifi.where())
