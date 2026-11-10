@@ -2,7 +2,7 @@
 ERROR HUB DOWNLODER - public-ready version.
 Paste a video link -> the server fetches it -> the video plays in the page and can be downloaded.
 """
-import os, re, json, glob, shutil, subprocess, tempfile, time, uuid, base64, socket, secrets, hmac, hashlib, ipaddress, mimetypes, threading
+import os, re, json, glob, shutil, subprocess, tempfile, time, uuid, base64, socket, secrets, hmac, hashlib, ipaddress, mimetypes, threading, datetime
 from functools import wraps
 from urllib.parse import urlparse, urljoin
 from concurrent.futures import ThreadPoolExecutor
@@ -18,6 +18,7 @@ except Exception:
 
 # ---------- settings (all can be changed with Environment Variables on Render) ----------
 PASSWORD = os.environ.get("ACCESS_PASSWORD", "")            # empty = public, set = private
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")        # set this to turn on /admin (site usage stats, no personal data)
 MAX_MB = int(os.environ.get("MAX_MB", "2048"))                # biggest single video
 MAX_MINUTES = int(os.environ.get("MAX_MINUTES", "300"))       # longest video
 TTL = int(os.environ.get("KEEP_MINUTES", "20")) * 60         # how long files stay on the server
@@ -67,6 +68,36 @@ hits = {}
 lock = threading.Lock()
 slots = threading.BoundedSemaphore(MAX_JOBS)
 
+# ---------- anonymous usage stats for the admin panel ----------
+# No link, title, IP or name is ever stored here - only counts per website domain and per day,
+# plus a random per-browser/app id (DEVICES) used only to count how many separate installs are active.
+SITE_STATS = {}     # domain -> [ok_count, fail_count]
+DAILY = {}          # "YYYY-MM-DD" -> number of attempts that day
+DEVICES = {}        # random id -> last time it was seen (prunes itself, oldest first, after 8 days)
+JOBS_ACTIVE = [0]   # downloads running right now
+
+def record_site(url, ok):
+    host = (urlparse(url).hostname or "unknown").lower()
+    host = re.sub(r"^(www|m|mobile)\.", "", host)
+    day = datetime.date.today().isoformat()
+    with lock:
+        e = SITE_STATS.setdefault(host, [0, 0])
+        e[0 if ok else 1] += 1
+        DAILY[day] = DAILY.get(day, 0) + 1
+        if len(SITE_STATS) > 500:
+            for k in sorted(SITE_STATS, key=lambda k: sum(SITE_STATS[k]))[:50]:
+                SITE_STATS.pop(k, None)
+
+
+
+@app.errorhandler(Exception)
+def any_error(e):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    msg = re.sub(r"\s+", " ", str(e))[:200] or e.__class__.__name__
+    return jsonify(error="Server error: " + msg), 500
+
 
 @app.after_request
 def security_headers(r):
@@ -89,6 +120,39 @@ def need_auth(f):
             return jsonify(error="Login required"), 401
         return f(*a, **k)
     return w
+
+
+def admin_auth(f):
+    @wraps(f)
+    def w(*a, **k):
+        if not ADMIN_PASSWORD:
+            return jsonify(error="The admin panel is off. Set the ADMIN_PASSWORD setting on the server to turn it on."), 404
+        if not session.get("admin_ok"):
+            return jsonify(error="Admin login required"), 401
+        return f(*a, **k)
+    return w
+
+
+_SKIP_TRACK = ("/api/admin", "/admin", "/media/", "/icons/", "/manifest.webmanifest", "/sw.js", "/health", "/api/ping")
+
+
+@app.before_request
+def track_device():
+    """Counts active installs. Uses a random id already stored in the session cookie - never the IP or name."""
+    if request.path.startswith(_SKIP_TRACK):
+        return
+    duid = session.get("duid")
+    if not duid:
+        duid = secrets.token_hex(8)
+        session["duid"] = duid
+        session.permanent = True
+    now = time.time()
+    with lock:
+        DEVICES[duid] = now
+        if len(DEVICES) > 20000:
+            cutoff = now - 8 * 86400
+            for k in [k for k, v in DEVICES.items() if v < cutoff]:
+                DEVICES.pop(k, None)
 
 
 def rate_ok(bucket):
@@ -244,8 +308,15 @@ def expand(html):
     return text.replace("&amp;", "&").replace("\\/", "/")
 
 
+OG_VIDEO = re.compile(r"<meta[^>]+(?:property|name)=[\"'](?:og:video(?::secure_url|:url)?|twitter:player:stream)[\"'][^>]*?content=[\"']([^\"']+)|<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+(?:property|name)=[\"'](?:og:video(?::secure_url|:url)?|twitter:player:stream)[\"']", re.I)
+PRIMARY = re.compile(r"(?:video_url|video_alt_url\d*|contentUrl|content_url|hlsUrl)[\"']?\s*[:=]\s*[\"']((?:function/\d+/)?https?://[^\"'\s<>]+)", re.I)
+VIDTAG = re.compile(r"<(?:video|source)[^>]+src=[\"']([^\"']+)", re.I)
+MEDIA_EXT = re.compile(r"\.(?:m3u8|mp4|webm|mov)(?:$|[?#])", re.I)
+
+
 def find_media(url, referer=None, depth=0, seen=None):
-    """Fallback: open the embed page like a browser and collect real video links hidden inside it."""
+    """Fallback: open the embed page like a browser and collect real video links hidden inside it.
+    Links from the main player (og:video, video_url, <video> tag) come first, related videos last."""
     seen = seen if seen is not None else set()
     if url in seen or depth > 2:
         return []
@@ -254,19 +325,39 @@ def find_media(url, referer=None, depth=0, seen=None):
     if status >= 400 and depth == 0:
         raise RuntimeError("the site blocked the server (HTTP %d)" % status)
     text = expand(html)
-    found = [u for u in MEDIA.findall(text)]
+    items = []  # (tier, link): tier 0 = main player, 1 = <video> tag, 2 = anything else
+
+    def add(tier, u):
+        u = re.sub(r"^function/\d+/", "", (u or "").strip()).rstrip("/")
+        if u:
+            items.append((tier, urljoin(url, u)))
+
+    for m in OG_VIDEO.findall(html):
+        u = (m[0] or m[1]).replace("&amp;", "&")
+        if MEDIA_EXT.search(u):
+            add(0, u)
+    for k in PRIMARY.findall(text):
+        if not urlparse(k).path.lower().endswith(BAD_EXT):
+            add(0, k)
+    for sv in VIDTAG.findall(html):
+        if MEDIA_EXT.search(sv):
+            add(1, sv.replace("&amp;", "&"))
+    for u in MEDIA.findall(text):
+        add(2, u)
     for rel in re.findall(r"[\"'(]([^\"'()\s]+\.(?:m3u8|mp4)(?:\?[^\"'()\s]*)?)[\"')]", text, re.I):
-        if not rel.lower().startswith("http"):
-            found.append(urljoin(url, rel))
+        add(2, rel)
     for k in KEYED.findall(text):
         k = re.sub(r"^function/\d+/", "", k).rstrip("/")
         path = urlparse(k).path.lower()
         if not path.endswith(BAD_EXT) and re.search(r"\.(?:mp4|m3u8|webm|mov)|get_file|/video|/stream|/media", k, re.I):
-            found.append(k)
-    found = [u for u in dict.fromkeys(found) if url_is_safe(u)]
-    found.sort(key=lambda u: 0 if ".m3u8" in u.lower() else (1 if ".mp4" in u.lower() else 2))
+            add(2, k)
+    best = {}
+    for i, (t, u) in enumerate(items):
+        if u not in best:
+            best[u] = (t, i)
+    found = [u for u in sorted(best, key=lambda u: best[u]) if url_is_safe(u)]
     if found:
-        return [(u, url) for u in found[:4]]
+        return [(u, url) for u in found[:6]]
     for src in re.findall(r"<iframe[^>]+(?:data-src|src)=[\"']([^\"']+)", html, re.I)[:4]:
         src = urljoin(url, src)
         if src.startswith("http") and url_is_safe(src):
@@ -381,16 +472,18 @@ def probe_duration(src, referer=None):
 
 
 def rank_candidates(cands, with_dur=False):
-    """A page often holds an ad, a preview or a trailer next to the real video. Longest video first,
-    and links that look like ads/previews go last."""
+    """Keep the page's own order (main player first). Only very short clips and links that look like
+    ads/previews are moved to the back. We no longer pick the 'longest' video: that often chose a
+    related video instead of the one the link points to."""
     cands = [c for c in cands if not (BLOCKED and is_blocked(c[0]))][:6]
     if not cands:
         return []
     with ThreadPoolExecutor(max_workers=len(cands)) as ex:
         durs = list(ex.map(lambda c: probe_duration(c[0], c[1]), cands))
-    scored = [(c, d) for c, d in zip(cands, durs)]
-    scored.sort(key=lambda cd: (-(cd[1] or 0), 1 if AD_WORDS.search(cd[0][0]) else 0))
-    return [(c, d) for c, d in scored] if with_dur else [c for c, d in scored]
+    scored = [(c, d, i) for i, (c, d) in enumerate(zip(cands, durs))]
+    scored.sort(key=lambda t: (1 if (t[1] is not None and t[1] < 45) else 0,
+                               1 if AD_WORDS.search(t[0][0]) else 0, t[2]))
+    return [(c, d) for c, d, _ in scored] if with_dur else [c for c, d, _ in scored]
 
 
 def grab_candidate(direct, ref, vid):
@@ -568,15 +661,21 @@ def alt():
         return jsonify(error="Server storage is full right now. Try again in a few minutes."), 503
     if not slots.acquire(blocking=False):
         return jsonify(error="Server is busy with other downloads. Try again in a minute."), 503
+    with lock:
+        JOBS_ACTIVE[0] += 1
     try:
         vid = uuid.uuid4().hex[:12]
         try:
             info = grab_candidate(u, r, vid)
         except Exception as e:
             drop(vid)
+            record_site(u, False)
             return jsonify(error="Could not get that video: " + re.sub(r"\s+", " ", str(e).replace("ERROR: ", ""))[:160]), 400
+        record_site(u, True)
         return reply(vid, info, item["alts"])
     finally:
+        with lock:
+            JOBS_ACTIVE[0] -= 1
         slots.release()
 
 
@@ -604,6 +703,8 @@ def fetch():
         return jsonify(error="Server storage is full right now. Try again in a few minutes."), 503
     if not slots.acquire(blocking=False):
         return jsonify(error="Server is busy with other downloads. Try again in a minute."), 503
+    with lock:
+        JOBS_ACTIVE[0] += 1
     try:
         vid = uuid.uuid4().hex[:12]
         info, err, alts = None, None, []
@@ -635,7 +736,7 @@ def fetch():
                         err = e3
             except Exception as e2:
                 err = e2
-        elif str(info.get("extractor_key", "")).lower() in ("generic", "html5"):
+        elif info is not None and str(info.get("extractor_key", "")).lower() in ("generic", "html5"):
             # yt-dlp took the first video it saw on the page, which may be an ad or a short preview.
             # If the page holds a clearly longer video, use that one instead.
             try:
@@ -656,12 +757,13 @@ def fetch():
                 pass
         if info is None:
             drop(vid)
+            record_site(url, False)
             msg = str(err or "no video found on this page").replace("ERROR: ", "")
             msg = re.sub(r"\s+", " ", msg)[:200]
             if "does not pass filter" in msg or "duration" in msg:
                 msg = "This video is too long (limit %d minutes) or is a live stream." % MAX_MINUTES
             elif re.search(r"youtu(\.be|be\.com)", url.lower()) and re.search(r"429|too many|sign in|not a bot|confirm you|cookies|login|age|private|members|blocked|forbidden|403", msg, re.I):
-                msg = "YouTube blocked this server (Render's IP address is on its block list: HTTP 429 / sign-in). The app already tried several YouTube client identities. To fix it for good: (1) set PROXY_URL to a residential or mobile proxy, or (2) add your YouTube cookies in COOKIES_B64, or (3) run the app on your own PC / home internet. Private, members-only and age-restricted videos always need cookies."
+                msg = "YouTube refused this request (" + msg[:120] + "). The app already tried several YouTube client identities. Try again in a minute, turn on a VPN, or add your YouTube cookies (cookies.txt). Private, members-only and age-restricted videos always need cookies."
             elif re.search(r"facebook\.com|fb\.watch", url.lower()) and re.search(r"login|cookie|private|not available|permission|log in", msg, re.I):
                 msg = "Facebook says this video is not public (or wants a login). Public videos work. For friends-only or restricted ones add your cookies (COOKIES_B64 setting)."
             elif re.search(r"(twitter|x)\.com", url.lower()) and re.search(r"login|cookie|guest|sensitive|nsfw|age|protected|not authorized|no video|authentication", msg, re.I):
@@ -673,9 +775,13 @@ def fetch():
             return jsonify(error="Could not get the video: " + msg), 400
         if BLOCKED and str(info.get("extractor_key", "")).lower().startswith(BLOCKED_EXTRACTORS):
             drop(vid)
+            record_site(url, False)
             return jsonify(error=BLOCK_MSG), 403
+        record_site(url, True)
         return reply(vid, info, alts)
     finally:
+        with lock:
+            JOBS_ACTIVE[0] -= 1
         slots.release()
 
 
@@ -691,6 +797,125 @@ def media(vid):
     return send_file(item["path"], mimetype=mimetypes.guess_type(item["path"])[0] or "video/mp4",
                      conditional=True, as_attachment=request.args.get("dl") == "1",
                      download_name=safe + ext)
+
+
+# ---------- admin panel: anonymous usage stats only (no links, no titles, no names, no IPs stored) ----------
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    if not ADMIN_PASSWORD:
+        return jsonify(error="The admin panel is off. Set the ADMIN_PASSWORD setting on the server to turn it on."), 404
+    if not rate_ok("admin-login"):
+        return jsonify(error="Too many tries. Wait a few minutes."), 429
+    given = str((request.get_json(silent=True) or {}).get("password", ""))
+    if hmac.compare_digest(given.encode(), ADMIN_PASSWORD.encode()):
+        session.permanent = True
+        session["admin_ok"] = True
+        return jsonify(ok=True)
+    return jsonify(error="Wrong password"), 403
+
+
+@app.route("/api/admin/logout", methods=["POST"])
+def admin_logout():
+    session.pop("admin_ok", None)
+    return jsonify(ok=True)
+
+
+def _within_days(day_str, days):
+    try:
+        return (datetime.date.today() - datetime.date.fromisoformat(day_str)).days < days
+    except Exception:
+        return False
+
+
+@app.route("/api/admin/stats")
+@admin_auth
+def admin_stats():
+    now = time.time()
+    with lock:
+        active_now = sum(1 for v in DEVICES.values() if now - v < 300)        # seen in the last 5 minutes
+        active_today = sum(1 for v in DEVICES.values() if now - v < 86400)
+        devices_total = len(DEVICES)
+        today = DAILY.get(datetime.date.today().isoformat(), 0)
+        week = sum(v for k, v in DAILY.items() if _within_days(k, 7))
+        daily = sorted(DAILY.items())[-14:]
+        sites = sorted(SITE_STATS.items(), key=lambda kv: -(kv[1][0] + kv[1][1]))[:40]
+        jobs_running = JOBS_ACTIVE[0]
+    return jsonify(
+        active_now=active_now, active_today=active_today, devices_total=devices_total,
+        downloads_today=today, downloads_week=week, daily=[{"day": d, "n": n} for d, n in daily],
+        sites=[{"domain": d, "ok": o, "fail": f} for d, (o, f) in sites],
+        jobs_running=jobs_running, jobs_max=MAX_JOBS, cache_mb=round(cache_size_mb(), 1), cache_max_mb=MAX_CACHE_MB,
+    )
+
+
+ADMIN_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin - ERROR HUB DOWNLODER</title>
+<style>
+:root{--bg:#0a0306;--card:#160911;--line:#3a1420;--txt:#f4e9e3;--mut:#c9a8a0;--a:#ff3860;--b:#ff9a3c;--ok:#36d17c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,sans-serif;padding:20px}
+h1{font-size:22px;margin:0 0 18px}
+.wrap{max-width:900px;margin:0 auto}
+#login{max-width:320px;margin:60px auto;display:flex;flex-direction:column;gap:10px}
+input{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#000a;color:#fff;font:inherit}
+button{padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(90deg,var(--a),var(--b));color:#fff;font:600 15px inherit;cursor:pointer}
+#err{color:var(--a);font-size:13px;min-height:18px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.card b{display:block;font-size:26px}
+.card span{color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--mut);font-weight:600}
+.ok{color:var(--ok)}.fail{color:var(--a)}
+.muted{color:var(--mut);font-size:13px;margin:8px 0 18px}
+#out{display:none}
+.top{display:flex;justify-content:space-between;align-items:center}
+.top button{background:transparent;border:1px solid var(--line);padding:7px 12px}
+</style></head><body><div class="wrap">
+<div id="login"><h1>Admin Login</h1><input id="pw" type="password" placeholder="Admin password"><button id="go">Enter</button><div id="err"></div></div>
+<div id="out">
+<div class="top"><h1>Usage overview</h1><button id="logout">Log out</button></div>
+<p class="muted">Anonymous counts only - no links, titles, names or IP addresses are stored. Numbers reset if the server restarts.</p>
+<div class="cards">
+<div class="card"><b id="s_active">-</b><span>Active now (5 min)</span></div>
+<div class="card"><b id="s_today_u">-</b><span>Active today (devices)</span></div>
+<div class="card"><b id="s_devices">-</b><span>Devices seen (all time)</span></div>
+<div class="card"><b id="s_today">-</b><span>Downloads today</span></div>
+<div class="card"><b id="s_week">-</b><span>Downloads this week</span></div>
+<div class="card"><b id="s_jobs">-</b><span>Downloads running now</span></div>
+</div>
+<h2>Sites being used</h2>
+<table id="sites"><thead><tr><th>Site</th><th>Success</th><th>Failed</th><th>Total</th></tr></thead><tbody></tbody></table>
+</div>
+</div>
+<script>
+async function j(u,o){const r=await fetch(u,o);let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||'Error');return d}
+async function load(){
+  try{
+    const d=await j('/api/admin/stats');
+    document.getElementById('login').style.display='none';
+    document.getElementById('out').style.display='block';
+    s_active.textContent=d.active_now; s_today_u.textContent=d.active_today; s_devices.textContent=d.devices_total;
+    s_today.textContent=d.downloads_today; s_week.textContent=d.downloads_week; s_jobs.textContent=d.jobs_running+' / '+d.jobs_max;
+    const tb=document.querySelector('#sites tbody'); tb.innerHTML='';
+    d.sites.forEach(s=>{const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+s.domain+'</td><td class="ok">'+s.ok+'</td><td class="fail">'+s.fail+'</td><td>'+(s.ok+s.fail)+'</td>';
+      tb.appendChild(tr)});
+  }catch(e){document.getElementById('login').style.display='flex';document.getElementById('out').style.display='none'}
+}
+go.onclick=async()=>{err.textContent='';try{await j('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw.value})});pw.value='';load()}catch(e){err.textContent=e.message}}
+pw.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()})
+logout.onclick=async()=>{await j('/api/admin/logout',{method:'POST'});load()}
+load(); setInterval(load,10000);
+</script></body></html>"""
+
+
+@app.route("/admin")
+def admin_page():
+    if not ADMIN_PASSWORD:
+        return "The admin panel is off. Set the ADMIN_PASSWORD setting on the server to turn it on.", 404
+    return ADMIN_HTML
 
 
 if __name__ == "__main__":
