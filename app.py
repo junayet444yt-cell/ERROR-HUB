@@ -464,24 +464,24 @@ def run_ydl(url, vid, headers=None):
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/manifest.webmanifest")
 def manifest():
-    return send_from_directory("static", "manifest.webmanifest", mimetype="application/manifest+json")
+    return send_from_directory(app.static_folder, "manifest.webmanifest", mimetype="application/manifest+json")
 
 
 @app.route("/sw.js")
 def service_worker():
-    r = send_from_directory("static", "sw.js", mimetype="application/javascript")
+    r = send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
     r.headers["Service-Worker-Allowed"] = "/"
     return r
 
 
 @app.route("/icons/<path:name>")
 def icons(name):
-    r = send_from_directory(os.path.join("static", "icons"), name)
+    r = send_from_directory(os.path.join(app.static_folder, "icons"), name)
     r.headers["Cache-Control"] = "public, max-age=86400"
     return r
 
