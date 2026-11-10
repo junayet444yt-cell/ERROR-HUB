@@ -33,6 +33,12 @@ jobs:
           Expand-Archive ffmpeg.zip -DestinationPath ff
           Copy-Item "ff\*\bin\ffmpeg.exe" desktop\
           Copy-Item "ff\*\bin\ffprobe.exe" desktop\
+      - name: Download deno (needed by yt-dlp for YouTube)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip" -OutFile deno.zip
+          Expand-Archive deno.zip -DestinationPath denoout
+          Copy-Item "denoout\deno.exe" desktop\
       - name: Build exe
         run: pyinstaller --noconfirm desktop/ERROR-HUB.spec
       - uses: actions/upload-artifact@v4
@@ -62,7 +68,7 @@ jobs:
           mkdir -p android/app/src/main/assets
           cp -r static android/app/src/main/assets/static
       - name: Build apk
-        run: gradle -p android assembleDebug --no-daemon --stacktrace
+        run: gradle -p android assembleDebug --no-daemon --console=plain
       - name: Name the file
         run: cp android/app/build/outputs/apk/debug/app-debug.apk ERROR-HUB-DOWNLODER.apk
       - uses: actions/upload-artifact@v4
