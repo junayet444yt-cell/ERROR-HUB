@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: video-downloader
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MAX_MB
+        value: "2048"
+      - key: MAX_MINUTES
+        value: "300"
+      - key: RATE_MAX
+        value: "20"
+      - key: BLOCKED_SITES
+        value: "youtube.com,youtu.be,youtube-nocookie.com"
+      # Private site: add ACCESS_PASSWORD in the Render dashboard. Public site: leave it out.
+      # Optional: CONTACT_EMAIL, PROXY_URL, KEEP_MINUTES, MAX_JOBS, MAX_CACHE_MB, USE_COOKIES=1, COOKIES_B64 (Instagram login cookies)

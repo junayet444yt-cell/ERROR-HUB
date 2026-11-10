@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d0206">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ERROR HUB DOWNLODER</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Metal+Mania&family=Chakra+Petch:wght@400;600&family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600&family=Cormorant+Garamond:ital,wght@1,600&display=swap">
+<style>
+:root{--h:0;--bg:#0d0206;--txt:#fff1ea;
+--card:hsl(calc(340 + var(--h)) 70% 7%);--line:hsl(calc(345 + var(--h)) 66% 21%);--mut:hsl(calc(14 + var(--h)) 52% 74%);
+--a:hsl(calc(352 + var(--h)) 100% 56%);--b:hsl(calc(33 + var(--h)) 100% 50%);--c:hsl(calc(48 + var(--h)) 100% 62%);
+--d1:hsl(calc(350 + var(--h)) 82% 26%);--d2:hsl(calc(28 + var(--h)) 100% 24%);--d3:hsl(calc(325 + var(--h)) 78% 16%);--d4:hsl(calc(340 + var(--h)) 66% 14%)}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;font-family:"Chakra Petch",system-ui,sans-serif;color:var(--txt)}
+/* live background: NOT blurred by default, you control the blur with the slider */
+#bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+background:radial-gradient(900px 500px at 10% -10%,var(--d1) 0,transparent 60%),radial-gradient(800px 500px at 100% 0,var(--d2) 0,transparent 55%),radial-gradient(700px 400px at 50% 110%,var(--d3) 0,transparent 60%),var(--bg);
+filter:var(--bf,none)}
+#bg.blur{transform:scale(1.08)}
+#fx{position:absolute;inset:0;width:100%;height:100%}
+#bgv{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;background:transparent;display:none}
+#shade{position:absolute;inset:0;background:#000;opacity:0}
+p.sub,.note,#msg{text-shadow:0 1px 8px #000c}
+main{position:relative;max-width:780px;margin:0 auto;padding:30px 16px 80px}
+h1,h2{font-family:Creepster,cursive;font-weight:400;letter-spacing:.04em}
+h1{font-size:clamp(36px,10vw,74px);margin:6px 0 2px;line-height:1.05;background:linear-gradient(90deg,var(--a),var(--b),var(--c),var(--b),var(--a));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+filter:drop-shadow(0 0 18px color-mix(in srgb,var(--a) 53%,transparent));animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+.brand{display:flex;flex-direction:column;align-items:flex-start;margin:6px 0 4px;line-height:1;background:none;-webkit-background-clip:border-box;background-clip:border-box;color:inherit;filter:none;animation:none}
+.brand .dev{font-family:Creepster,cursive;font-weight:400;font-size:clamp(40px,11.5vw,78px);letter-spacing:.05em;background:linear-gradient(90deg,var(--a),var(--b),var(--c),var(--b),var(--a));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--a) 55%,transparent))}
+.brand .ang{font-family:"Cinzel Decorative",serif;font-weight:900;font-size:clamp(16px,5.2vw,38px);letter-spacing:.1em;margin-top:7px;white-space:nowrap;background:linear-gradient(180deg,#fff,#fff0c4 55%,#ffd98a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px #fff8d6aa) drop-shadow(0 0 20px #ffe7a066)}
+.brand .ang::after{content:"";display:block;height:2px;margin-top:9px;border-radius:2px;background:linear-gradient(90deg,var(--a),#fff 45%,transparent)}
+p.sub{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-weight:600;color:var(--mut);margin:0 0 24px;font-size:21px;line-height:1.3}
+.box{display:flex;gap:10px;flex-wrap:wrap}
+.field{position:relative;flex:1 1 280px}
+input[type=url],input[type=password]{width:100%;padding:15px 44px 15px 16px;font:inherit;color:var(--txt);background:color-mix(in srgb,var(--card) 80%,transparent);border:2px solid var(--line);border-radius:14px;outline:none;transition:border-color .2s,box-shadow .2s}
+input[type=url]:focus,input[type=password]:focus{border-color:var(--b);box-shadow:0 0 0 4px color-mix(in srgb,var(--b) 19%,transparent),0 0 28px color-mix(in srgb,var(--a) 25%,transparent)}
+.hint{margin:10px 2px 0;font-size:15px;color:var(--c);text-shadow:0 1px 8px #000c}
+.x{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:0;border-radius:50%;background:var(--line);color:#fff;font-size:16px;cursor:pointer;display:none}
+button.go,.dl,.close{font-family:"Metal Mania",cursive;letter-spacing:.05em}
+button.go{position:relative;overflow:hidden;padding:15px 28px;font-size:20px;color:#fff;background:linear-gradient(90deg,var(--a),var(--b));border:0;border-radius:14px;cursor:pointer;text-shadow:0 1px 6px #0008;box-shadow:0 6px 24px color-mix(in srgb,var(--a) 33%,transparent);transition:transform .15s,box-shadow .2s}
+button.go::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#fff5,transparent);transform:skewX(-20deg);transition:left .5s}
+button.go:hover:not(:disabled)::after{left:130%}
+button.go:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 30px color-mix(in srgb,var(--a) 53%,transparent)}
+button.go:active:not(:disabled){transform:translateY(0)}
+button.pbtn{flex:1;padding:9px 10px;font-family:"Metal Mania",cursive;font-size:16px;letter-spacing:.04em;color:var(--txt);background:var(--d4);border:2px solid var(--line);border-radius:10px;cursor:pointer;transition:border-color .2s}
+button.pbtn:hover{border-color:var(--b)}
+button.pbtn.main{color:#1a0300;background:linear-gradient(90deg,var(--c),var(--b));border-color:transparent}
+button:disabled{opacity:.6;cursor:wait}
+button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--c);outline-offset:2px}
+details{margin-top:12px;color:var(--mut)}
+summary{cursor:pointer;font-size:14px;padding:4px 0}
+details input{margin-top:8px;padding-right:16px}
+#msg{margin:16px 0;min-height:24px;color:var(--mut)}
+#msg.err{color:#ff7a8a}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid var(--line);border-top-color:var(--b);border-radius:50%;animation:s .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+#res{display:none;background:color-mix(in srgb,var(--card) 90%,transparent);border:2px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 0 50px color-mix(in srgb,var(--a) 19%,transparent),0 20px 60px #000a;animation:pop .35s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+video{width:100%;max-height:70vh;background:#000;display:block}
+.info{padding:14px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.info h2{flex:1 1 100%;margin:0;font-family:"Cinzel Decorative",serif;font-weight:700;letter-spacing:.03em;font-size:19px;line-height:1.3;word-break:break-word}
+.dl{display:inline-block;padding:11px 22px;font-size:19px;color:#1a0300;background:linear-gradient(90deg,var(--c),var(--b));border-radius:12px;text-decoration:none;box-shadow:0 4px 18px color-mix(in srgb,var(--b) 27%,transparent);transition:transform .15s}
+.dl:hover{transform:translateY(-2px)}
+.close{padding:11px 18px;font-size:19px;color:var(--txt);background:transparent;border:2px solid var(--line);border-radius:12px;cursor:pointer;transition:border-color .2s}
+.close:hover{border-color:var(--a)}
+.note{margin-top:34px;font-size:13px;color:var(--mut);line-height:1.6}
+.note a{color:var(--c)}
+.size{color:var(--mut);font-size:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.top h1{flex:1 1 auto;min-width:0}
+.social{display:flex;flex-direction:column;align-items:stretch;gap:7px;flex:none}
+.discord{display:flex;width:auto;align-items:center;gap:8px;margin:0;padding:7px 16px 7px 11px;font-family:"Metal Mania",cursive;font-size:15px;letter-spacing:.05em;color:#fff;text-decoration:none;background:linear-gradient(135deg,#5865f2,#7983f5);border-radius:999px;box-shadow:0 4px 16px #5865f277,inset 0 1px 0 #ffffff40;transition:transform .15s,box-shadow .2s}
+.discord svg{width:19px;height:19px;flex:none;filter:drop-shadow(0 1px 4px #0006)}
+.discord:hover{transform:translateY(-2px);box-shadow:0 10px 34px #5865f2cc,inset 0 1px 0 #ffffff55}
+.discord:active{transform:translateY(0)}
+.discord.facebook{background:linear-gradient(135deg,#1877f2,#4a9bff);box-shadow:0 4px 16px #1877f277,inset 0 1px 0 #ffffff40}
+.discord.facebook:hover{box-shadow:0 10px 34px #1877f2cc,inset 0 1px 0 #ffffff55}
+/* background settings */
+#gear{position:fixed;right:14px;bottom:14px;width:46px;height:46px;border-radius:50%;border:2px solid var(--line);background:color-mix(in srgb,var(--card) 93%,transparent);color:var(--c);font-size:21px;cursor:pointer;z-index:5;transition:transform .3s,border-color .2s}
+#gear:hover{transform:rotate(60deg);border-color:var(--b)}
+#panel{position:fixed;right:14px;bottom:70px;width:min(280px,calc(100vw - 28px));padding:16px;background:color-mix(in srgb,var(--card) 95%,transparent);border:2px solid var(--line);border-radius:16px;z-index:5;display:none;box-shadow:0 10px 40px #000a}
+#panel h3{margin:0 0 12px;font-family:"Metal Mania",cursive;font-weight:400;font-size:20px;color:var(--c)}
+#panel label{display:flex;justify-content:space-between;font-size:14px;color:var(--mut);margin-top:10px}
+#panel input[type=range]{width:100%;accent-color:var(--b)}
+#panel .btns{display:flex;gap:8px;margin-top:6px}
+#panel{max-height:calc(100vh - 100px);overflow:auto}
+#panel .row{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:14px;color:var(--mut)}
+#lock{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;padding:20px;z-index:9}
+#lock div{max-width:340px;width:100%}
+@media (prefers-reduced-motion:reduce){.spin,h1,#res{animation:none}}
+
+/* ===== v12: calmer, darker colours + advanced glass UI (this block overrides the rules above) ===== */
+@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+:root{--bg:#060103;--txt:#f1e4dd;
+--card:hsl(calc(340 + var(--h)) 55% 6%);--line:hsl(calc(345 + var(--h)) 40% 17%);--mut:hsl(calc(14 + var(--h)) 30% 68%);
+--a:hsl(calc(352 + var(--h)) 58% 44%);--b:hsl(calc(30 + var(--h)) 62% 42%);--c:hsl(calc(44 + var(--h)) 48% 60%);
+--d1:hsl(calc(350 + var(--h)) 50% 13%);--d2:hsl(calc(28 + var(--h)) 52% 11%);--d3:hsl(calc(325 + var(--h)) 46% 9%);--d4:hsl(calc(340 + var(--h)) 45% 11%)}
+html{background:#060103;scroll-behavior:smooth}
+html,body{overscroll-behavior-y:contain}
+::selection{background:color-mix(in srgb,var(--a) 45%,transparent);color:#fff}
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#bg{background:radial-gradient(900px 520px at 8% -10%,var(--d1) 0,transparent 62%),radial-gradient(800px 520px at 100% 0,var(--d2) 0,transparent 58%),radial-gradient(700px 420px at 50% 112%,var(--d3) 0,transparent 62%),#060103}
+.brand .dev{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--a) 30%,transparent))}
+.brand .ang{background:linear-gradient(180deg,#f4ecd8,#e6d3a2 55%,#c9a964);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 5px #f4e6b855)}
+.brand .ang::after{background:linear-gradient(90deg,var(--a),#e8dcc0 45%,transparent)}
+p.sub{color:var(--mut)}
+.hint{color:var(--c);text-shadow:none;opacity:.9}
+.hint2{margin-top:4px;font-size:13px;color:var(--mut);opacity:.85}
+/* glass card */
+.glass{position:relative;border-radius:22px;padding:18px;border:1px solid rgba(255,255,255,.07);
+background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012)),color-mix(in srgb,var(--card) 66%,transparent);
+-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);
+box-shadow:0 18px 48px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
+.glass::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;
+background:conic-gradient(from var(--ang),transparent 0 68%,color-mix(in srgb,var(--b) 65%,transparent) 84%,transparent 100%);
+-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:spinb 9s linear infinite}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s;
+background:radial-gradient(280px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.065),transparent 62%)}
+.glass:hover::after{opacity:1}
+@keyframes spinb{to{--ang:360deg}}
+#res.glass{padding:0;overflow:hidden;border:1px solid rgba(255,255,255,.07)}
+#res.glass .info{padding:14px 18px 16px}
+#res video{border-radius:0}
+input[type=url],input[type=password]{background:rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.1);border-radius:14px}
+input[type=url]:focus,input[type=password]:focus{border-color:color-mix(in srgb,var(--b) 80%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--b) 16%,transparent)}
+#url{padding-right:84px}
+.pst{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:6px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:var(--c);font:600 13px "Chakra Petch",system-ui,sans-serif;cursor:pointer;transition:background .2s,border-color .2s}
+.pst:hover{background:rgba(255,255,255,.12);border-color:color-mix(in srgb,var(--b) 60%,transparent)}
+.x{background:rgba(255,255,255,.1)}
+/* buttons: softer light, with ripple */
+button.go,.dl,.discord{position:relative;overflow:hidden}
+button.go{background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 4px 14px color-mix(in srgb,var(--a) 28%,transparent);text-shadow:0 1px 3px #0006;border-radius:14px}
+button.go:hover:not(:disabled){box-shadow:0 8px 20px color-mix(in srgb,var(--a) 38%,transparent)}
+.dl{background:linear-gradient(135deg,var(--c),var(--b));box-shadow:0 3px 12px color-mix(in srgb,var(--b) 25%,transparent)}
+button.pbtn.main{background:linear-gradient(135deg,var(--c),var(--b))}
+.discord{box-shadow:0 3px 12px #5865f255,inset 0 1px 0 #ffffff30}
+.discord:hover{box-shadow:0 6px 18px #5865f288,inset 0 1px 0 #ffffff40}
+.discord.facebook{box-shadow:0 3px 12px #1877f255,inset 0 1px 0 #ffffff30}
+.discord.facebook:hover{box-shadow:0 6px 18px #1877f288,inset 0 1px 0 #ffffff40}
+.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.32);transform:scale(0);animation:rip .6s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+button:active:not(:disabled):not(.pst):not(.x),.dl:active{transform:scale(.97)}
+.pst:active{transform:translateY(-50%) scale(.95)}
+.x:active{transform:translateY(-50%) scale(.9)}
+.pst,.x{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.alts{flex:1 1 100%;display:none;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.alts button{padding:5px 12px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.06);color:var(--c);font:600 13px "Chakra Petch",system-ui,sans-serif;cursor:pointer;transition:background .2s}
+.alts button:hover{background:rgba(255,255,255,.13)}
+/* progress bar */
+.bar{height:3px;border-radius:3px;margin-top:14px;background:rgba(255,255,255,.06);overflow:hidden;opacity:0;transition:opacity .3s}
+.bar.on{opacity:1}
+.bar i{display:block;height:100%;width:38%;border-radius:3px;background:linear-gradient(90deg,transparent,var(--b),var(--a),transparent);animation:slide 1.3s ease-in-out infinite}
+@keyframes slide{from{transform:translateX(-110%)}to{transform:translateX(280%)}}
+#gear,#panel{background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1)}
+#panel{border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+/* one orchestrated entrance */
+.rv{opacity:0;transform:translateY(12px);animation:rv .65s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--i,0) * 90ms)}
+@keyframes rv{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;animation:none}.glass::before,.bar i,.brand .dev{animation:none}}
+
+/* ===== v17: clear panel + link bar so the background video shows through (slider = how frosted) ===== */
+:root{--gl:0}
+.glass{background:linear-gradient(180deg,rgba(255,255,255,calc(.02 + .03 * var(--gl))),rgba(255,255,255,0)),rgba(0,0,0,calc(.04 + .42 * var(--gl)));
+-webkit-backdrop-filter:blur(calc(16px * var(--gl))) saturate(1.1);backdrop-filter:blur(calc(16px * var(--gl))) saturate(1.1);
+border-color:rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(0,0,0,calc(.12 + .3 * var(--gl))),inset 0 1px 0 rgba(255,255,255,.08)}
+.glassoff .glass{-webkit-backdrop-filter:none;backdrop-filter:none}
+input[type=url],input[type=password]{background:rgba(0,0,0,calc(.06 + .28 * var(--gl)));border:1px solid rgba(255,255,255,.22);color:#fff}
+input[type=url]::placeholder{color:rgba(255,255,255,.72)}
+p.sub,.hint,.hint2,.note,details summary,#msg,.alts,.size{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 10px rgba(0,0,0,.6)}
+.pst,.x{background:rgba(0,0,0,.28)}
+
+/* ===== v18: soft colour clouds that drift behind everything (follow the colour change) ===== */
+#bg{animation:none;filter:var(--bf,none)}  /* no hue-rotate on the background: your video keeps its real colours */
+.aur{position:absolute;display:block;width:62vmax;height:62vmax;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:.55;will-change:transform}
+.a1{left:-18vmax;top:-24vmax;background:radial-gradient(circle,color-mix(in srgb,var(--a) 36%,transparent),transparent 66%);animation:fl1 26s ease-in-out infinite alternate}
+.a2{right:-24vmax;top:6vh;background:radial-gradient(circle,color-mix(in srgb,var(--b) 32%,transparent),transparent 66%);animation:fl2 31s ease-in-out infinite alternate}
+.a3{left:16vw;bottom:-36vmax;background:radial-gradient(circle,color-mix(in srgb,var(--c) 26%,transparent),transparent 66%);animation:fl3 37s ease-in-out infinite alternate}
+@keyframes fl1{to{transform:translate(20vmax,16vmax) scale(1.18)}}
+@keyframes fl2{to{transform:translate(-22vmax,18vmax) scale(.9)}}
+@keyframes fl3{to{transform:translate(18vmax,-14vmax) scale(1.2)}}
+@media (prefers-reduced-motion:reduce){.aur{animation:none}}
+
+/* ===== v19: page text cannot be selected or copied (the link box stays editable) ===== */
+html,body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+::selection{background:transparent}
+input::selection{background:color-mix(in srgb,var(--b) 45%,transparent)}
+img,a,svg{-webkit-user-drag:none;user-drag:none}
+
+/* ===== v20: the Blur slider blurs ONLY the background video; sparkles, colour clouds and touch effects stay sharp ===== */
+#bg,#bg.blur{filter:none;transform:none;animation:none}
+#bgv{filter:var(--bf,none);transition:filter .25s}
+#bg.blur #bgv{transform:scale(1.08)} /* hides the soft edges the blur creates */
+
+/* v21: cheaper colour clouds (no blend mode) so low-end phones stay smooth */
+.aur{mix-blend-mode:normal;opacity:.5}
+
+/* ===== v25: occasional glitch flicker on the title ===== */
+.brand .dev{position:relative}
+.brand .dev::before,.brand .dev::after{content:attr(data-t);position:absolute;left:0;top:0;opacity:0;pointer-events:none;-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .dev::before{background:linear-gradient(90deg,#ff4ad8,#ff4ad8);-webkit-background-clip:text;background-clip:text;animation:gl1 7s steps(1) infinite}
+.brand .dev::after{background:linear-gradient(90deg,#46c8ff,#46c8ff);-webkit-background-clip:text;background-clip:text;animation:gl2 7s steps(1) infinite}
+@keyframes gl1{0%,93%,100%{opacity:0;transform:none}94%{opacity:.55;transform:translate(-3px,0)}96%{opacity:.4;transform:translate(2px,1px)}98%{opacity:0}}
+@keyframes gl2{0%,93%,100%{opacity:0;transform:none}95%{opacity:.5;transform:translate(3px,0)}97%{opacity:.35;transform:translate(-2px,-1px)}99%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.brand .dev::before,.brand .dev::after{animation:none}}
+</style>
+</head>
+<body>
+<div id="bg"><video id="bgv" muted loop playsinline autoplay></video><div id="shade"></div><i class="aur a1"></i><i class="aur a2"></i><i class="aur a3"></i><canvas id="fx"></canvas></div>
+<main>
+  <header class="top rv" style="--i:0">
+    <h1 class="brand" aria-label="ERROR HUB DOWNLODER"><span class="dev" data-t="ERROR HUB">ERROR HUB</span><span class="ang">DOWNLODER</span></h1>
+  <div class="social">
+    <a class="discord" href="https://discord.gg/ugwfaHSH3" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord server">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+      <span>Join our Discord</span>
+    </a>
+    <a class="discord facebook" href="https://www.facebook.com/share/14sZEydEd2W/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>
+      <span>Follow on Facebook</span>
+    </a>
+    </div>
+  </header>
+  <p class="sub rv" style="--i:1">Paste any video link. The video plays below, and you can download it.</p>
+  <section class="glass rv" id="card" style="--i:2">
+  <div class="box">
+    <div class="field">
+      <input id="url" type="url" placeholder="Paste video link here" autocomplete="off" aria-label="Video link">
+      <button class="pst" id="pst" type="button" aria-label="Paste from clipboard">Paste</button>
+      <button class="x" id="clr" aria-label="Clear link">✕</button>
+    </div>
+    <button class="go" id="go">Get Video</button>
+  </div>
+  <p class="hint">Facebook, Instagram, TikTok, Twitter and 18+ content download</p>
+  <p class="hint hint2">18+ content · limited website video download</p>
+  <button class="pbtn main" id="install" type="button" style="display:none;flex:none;margin-top:12px;padding:11px 18px;font-size:18px">📲 Install as App</button>
+  <input id="file" type="file" accept="video/*,.mkv,.mov,.m4v,.3gp" hidden>
+  <div class="bar" id="bar" aria-hidden="true"><i></i></div>
+  </section>
+  <div id="msg" role="status"></div>
+  <section id="res" class="glass">
+    <video id="vid" controls playsinline></video>
+    <div class="info">
+      <h2 id="ttl"></h2>
+      <a class="dl" id="dl" href="#">Download</a>
+      <button class="close" id="cls">Close Video</button>
+      <span class="size" id="sz"></span>
+      <div class="alts" id="alts"></div>
+    </div>
+  </section>
+  <p class="note rv" style="--i:4"><span id="rule">Only download videos you own or have permission to save.</span> Videos are deleted from the server after a short time.<span id="contact"></span></p>
+  <p class="note rv" style="--i:5">YouTube videos are not supported.<br>18+ limited website access.</p>
+</main>
+
+<button id="gear" aria-label="Background settings" aria-expanded="false">⚙</button>
+<div id="panel" role="dialog" aria-label="Background settings">
+  <h3>Background</h3>
+  <div class="btns"><button class="pbtn main" id="bgpick" type="button">Add background video</button><button class="pbtn" id="bgrm" type="button">Remove</button></div>
+  <label for="vop"><span>Video transparency</span><span id="vov">100%</span></label>
+  <input id="vop" type="range" min="10" max="100" step="5" value="100">
+  <label for="blur"><span>Blur</span><span id="blv">0</span></label>
+  <input id="blur" type="range" min="0" max="24" step="1" value="0">
+  <label for="gl"><span>Panel frost (0 = clear)</span><span id="glv">0</span></label>
+  <input id="gl" type="range" min="0" max="100" step="5" value="0">
+  <label for="dim"><span>Darkness</span><span id="dmv">0</span></label>
+  <input id="dim" type="range" min="0" max="80" step="5" value="0">
+  <div class="row"><span>Video sound</span><input id="snd" type="checkbox" style="accent-color:var(--b);width:20px;height:20px"></div>
+  <div class="row"><span>Auto colour change (RGB)</span><input id="rgb" type="checkbox" checked style="accent-color:var(--b);width:20px;height:20px"></div>
+  <div class="row"><span>Floating embers</span><input id="emb" type="checkbox" checked style="accent-color:var(--b);width:20px;height:20px"></div>
+  <div class="btns" style="margin-top:14px"><button class="pbtn" id="norm" type="button">Normal (reset)</button></div>
+</div>
+
+<div id="lock"><div>
+  <h1>Password</h1>
+  <input id="pw" type="password" placeholder="Enter password" style="padding-right:16px">
+  <p id="lerr" style="color:#ff7a8a;min-height:22px"></p>
+  <button class="go" id="lgo" style="width:100%">Enter</button>
+</div></div>
+<script>
+const $=id=>document.getElementById(id);
+const url=$('url'),msg=$('msg'),go=$('go'),clr=$('clr'),vid=$('vid');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let timer=null;
+
+function say(t,err,spin){msg.className=err?'err':'';msg.textContent='';if(spin){const s=document.createElement('span');s.className='spin';msg.appendChild(s)}msg.appendChild(document.createTextNode(t||''))}
+const pst=$('pst');
+function sync(){const has=!!url.value;clr.style.display=has?'block':'none';pst.style.display=has?'none':'block'}
+url.addEventListener('input',()=>{sync();store.set('evdUrl',url.value)});sync();
+clr.onclick=()=>{setUrl('');say('');url.focus()};
+function cleanUrl(t){
+  t=(t||'').trim();const m=t.match(/https?:\/\/[^\s<>"']+/i);
+  if(m)return m[0].replace(/[)\].,;!?]+$/,'');
+  return /^(www\.)?[\w-]+(\.[\w-]+)+\/\S*/.test(t)?'https://'+t:t;
+}
+function setUrl(t){url.value=t;store.set('evdUrl',t);sync()}
+pst.onclick=async()=>{
+  try{
+    const t=cleanUrl((window.AndroidBridge&&AndroidBridge.paste)?AndroidBridge.paste():await navigator.clipboard.readText());
+    if(t){setUrl(t);say('');url.focus()}else{say('Clipboard is empty. Copy a video link first.',true)}
+  }catch(e){
+    url.focus();
+    say('Chrome blocked clipboard access. Tap the box, press and hold, then choose Paste. (Or allow Clipboard in the site settings.)',true);
+  }
+};
+url.addEventListener('paste',()=>setTimeout(()=>{const t=cleanUrl(url.value);if(t!==url.value)setUrl(t);else sync()},0));
+
+function closeVideo(){
+  vid.pause();vid.removeAttribute('src');vid.removeAttribute('poster');vid.load();
+  $('res').style.display='none';
+}
+$('cls').onclick=()=>{closeVideo();say('');store.set('evdLast','')};
+
+vid.addEventListener('error',()=>{
+  if(!vid.getAttribute('src'))return;
+  say("The browser can't play this format. Use the Download button instead.",true);
+});
+
+/* ---- advanced UI: cursor spotlight on glass cards, button ripple ---- */
+document.querySelectorAll('.glass').forEach(g=>g.addEventListener('pointermove',e=>{const r=g.getBoundingClientRect();g.style.setProperty('--mx',(e.clientX-r.left)+'px');g.style.setProperty('--my',(e.clientY-r.top)+'px')}));
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('button.go,.dl,.discord');if(!b||b.disabled)return;
+  const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,i=document.createElement('span');
+  i.className='rip';i.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';
+  b.appendChild(i);setTimeout(()=>i.remove(),650);
+});
+
+/* ---- block selecting / copying page text (input boxes and the video player still work normally) ---- */
+(function(){
+  const ok=t=>t&&t.closest&&t.closest('input,textarea,video');
+  ['copy','cut','selectstart','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!ok(e.target))e.preventDefault()}));
+  document.addEventListener('contextmenu',e=>{if(!ok(e.target))e.preventDefault()});
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['c','x','a','u','s'].includes(e.key.toLowerCase())&&!ok(document.activeElement)){e.preventDefault()}});
+})();
+
+/* keep-alive signal for the desktop app (harmless on the web) */
+setInterval(()=>{fetch('/api/ping',{cache:'no-store'}).catch(()=>{})},15000);
+
+/* ---- link downloader ---- */
+function showRes(d){
+  vid.src='/media/'+d.id; if(d.thumbnail) vid.poster=d.thumbnail;
+  $('ttl').textContent=d.title; $('dl').style.display=''; $('dl').href='/media/'+d.id+'?dl=1';
+  $('sz').textContent=(d.size/1048576).toFixed(1)+' MB';
+  $('res').style.display='block';
+  const box=$('alts');box.textContent='';
+  if(d.others&&d.others.length){
+    box.style.display='flex';
+    box.append('Wrong video? Other videos found on this page:');
+    d.others.forEach(o=>{
+      const b=document.createElement('button');b.type='button';
+      const t=Math.round(o.dur||0);b.textContent=o.dur?(Math.floor(t/60)+':'+String(t%60).padStart(2,'0')):'?';
+      b.onclick=()=>pickAlt(d.id,o.n);box.appendChild(b);
+    });
+  }else box.style.display='none';
+}
+async function pickAlt(id,n){
+  closeVideo();go.disabled=true;$('bar').classList.add('on');say('Getting that video…',false,true);
+  try{
+    const r=await fetch('/api/alt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,n})});
+    let d={};try{d=await r.json()}catch(e){throw new Error('Something went wrong')}
+    if(!r.ok)throw new Error(d.error||'Something went wrong');
+    showRes(d);say('');
+    store.set('evdLast',JSON.stringify({id:d.id,title:d.title,thumbnail:d.thumbnail,size:d.size,others:d.others,t:Date.now()}));
+    $('res').scrollIntoView({behavior:'smooth'});
+  }catch(e){say(e.message,true)}
+  finally{go.disabled=false;$('bar').classList.remove('on')}
+}
+async function run(){
+  const u=cleanUrl(url.value); if(!u){say('Paste a link first',true);return}
+  if(u!==url.value)setUrl(u);
+  closeVideo(); go.disabled=true; $('bar').classList.add('on');
+  let sec=0; const tick=()=>say('Getting the video… '+sec+'s (big videos can take a while)',false,true);
+  tick(); timer=setInterval(()=>{sec++;tick()},1000);
+  try{
+    const r=await fetch('/api/fetch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u})});
+    if(r.status===401){$('lock').style.display='grid';say('');return}
+    let d={}; try{d=await r.json()}catch(e){throw new Error(r.status===502||r.status===504?'The server is waking up or busy. Wait 30 seconds and try again.':'Something went wrong')}
+    if(!r.ok) throw new Error(d.error||'Something went wrong');
+    showRes(d); say('');
+    store.set('evdLast',JSON.stringify({id:d.id,title:d.title,thumbnail:d.thumbnail,size:d.size,others:d.others,t:Date.now()}));
+    $('res').scrollIntoView({behavior:'smooth'});
+  }catch(e){say(e.message,true)}
+  finally{clearInterval(timer);go.disabled=false;$('bar').classList.remove('on')}
+}
+go.onclick=run; url.addEventListener('keydown',e=>{if(e.key==='Enter')run()});
+async function login(){
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('pw').value})});
+  if(r.ok){$('lock').style.display='none'}else{$('lerr').textContent='Wrong password'}
+}
+$('lgo').onclick=login; $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+fetch('/api/status').then(r=>r.json()).then(s=>{
+  if(s.need&&!s.ok)$('lock').style.display='grid';
+  
+  if(s.contact){const a=document.createElement('a');a.href='mailto:'+s.contact;a.textContent=s.contact;$('contact').append(' Contact / removal requests: ',a)}
+}).catch(()=>{});
+
+/* ---- background: blur slider, darkness, floating embers ---- */
+const bg=$('bg'),fx=$('fx'),cx=fx.getContext('2d');
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const bgv=$('bgv');
+function applyBg(){
+  const b=+$('blur').value,d=+$('dim').value,o=+$('vop').value,g=+$('gl').value;
+  $('glv').textContent=g+'%';document.documentElement.style.setProperty('--gl',g/100);document.documentElement.classList.toggle('glassoff',g<5);store.set('bgGl',g);
+  $('blv').textContent=b+'px';$('dmv').textContent=d+'%';$('vov').textContent=o+'%';
+  bgv.style.opacity=o/100;$('shade').style.opacity=d/100;
+  bg.style.setProperty('--bf',b?'blur('+b+'px)':'none');
+  bg.classList.toggle('blur',b>0);
+  store.set('bgBlur',b);store.set('bgDim2',d);store.set('bgOp',o);
+}
+$('blur').value=store.get('bgBlur',0);$('dim').value=store.get('bgDim2',20);$('vop').value=store.get('bgOp',100);$('gl').value=store.get('bgGl',0);
+$('emb').checked=store.get('bgEmb',reduce?'0':'1')==='1';
+$('blur').oninput=$('dim').oninput=$('vop').oninput=$('gl').oninput=applyBg;
+$('norm').onclick=()=>{$('blur').value=0;$('dim').value=20;$('vop').value=100;$('gl').value=0;applyBg()};
+
+/* background video: picked from your device, kept in the browser (IndexedDB) so it stays after reload. Nothing is uploaded. */
+const idb={db:null,
+  open(){return new Promise(res=>{try{const r=indexedDB.open('devilbg',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>{this.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
+  put(f){return new Promise(res=>{if(!this.db)return res(false);try{const t=this.db.transaction('f','readwrite');t.objectStore('f').put(f,'bg');t.oncomplete=()=>res(true);t.onerror=t.onabort=()=>res(false)}catch(e){res(false)}})},
+  get(){return new Promise(res=>{if(!this.db)return res(null);try{const q=this.db.transaction('f').objectStore('f').get('bg');q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)}catch(e){res(null)}})},
+  del(){return new Promise(res=>{if(!this.db)return res();try{const t=this.db.transaction('f','readwrite');t.objectStore('f').delete('bg');t.oncomplete=()=>res();t.onerror=()=>res()}catch(e){res()}})}};
+let bgUrl=null;
+function setBgVideo(f){
+  if(bgUrl)URL.revokeObjectURL(bgUrl);
+  bgUrl=URL.createObjectURL(f);bgv.src=bgUrl;bgv.style.display='block';bgv.muted=!$('snd').checked;
+  bgv.play().catch(()=>{bgv.muted=true;$('snd').checked=false;bgv.play().catch(()=>{})});
+}
+function clearBgVideo(){bgv.pause();bgv.removeAttribute('src');bgv.load();bgv.style.display='none';if(bgUrl){URL.revokeObjectURL(bgUrl);bgUrl=null}}
+$('bgpick').onclick=()=>$('file').click();
+$('file').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(!(f.type||'').startsWith('video/')&&!/\.(mp4|mkv|webm|mov|avi|m4v|3gp|ogv)$/i.test(f.name)){say('That file is not a video.',true);return}
+  setBgVideo(f);const ok=await idb.put(f);
+  say(ok?'':'Background video is on, but this browser cannot keep it after you close the page.',!ok);
+};
+$('bgrm').onclick=async()=>{clearBgVideo();await idb.del()};
+$('snd').onchange=()=>{bgv.muted=!$('snd').checked;if(!bgv.muted)bgv.play().catch(()=>{})};
+bgv.addEventListener('error',()=>{if(bgv.getAttribute('src')){clearBgVideo();say("This video format can't be used as background. Try an MP4.",true)}});
+idb.open().then(async ok=>{if(ok){const f=await idb.get();if(f)setBgVideo(f)}});
+$('emb').onchange=()=>{store.set('bgEmb',$('emb').checked?'1':'0');$('emb').checked?startFx():stopFx()};
+function panelShow(on){$('panel').style.display=on?'block':'none';$('gear').setAttribute('aria-expanded',on)}
+$('gear').onclick=()=>panelShow($('panel').style.display!=='block');
+document.addEventListener('pointerdown',e=>{if($('panel').style.display==='block'&&!e.target.closest('#panel,#gear'))panelShow(false)});
+addEventListener('keydown',e=>{if(e.key==='Escape')panelShow(false)});
+applyBg();
+
+/* ---- slow automatic colour change (all colours drift around the colour wheel) ---- */
+let hueT=+store.get('hueT',0),hueTimer=0,hue=0;
+const root=document.documentElement,themeMeta=document.querySelector('meta[name=theme-color]');
+const HUE_PERIOD=100; /* seconds for one trip around ALL colours */
+function setHue(){root.style.setProperty('--h',hue.toFixed(2));themeMeta.content='hsl('+((340+hue+360)%360).toFixed(0)+',55%,5%)'}
+/* all colours, one tiny step per second; the colours themselves are kept soft and dark so they never glare */
+function stepHue(){hueT+=1;hue=(hueT*360/HUE_PERIOD)%360;setHue()}
+function startHue(){stopHue();hueTimer=setInterval(()=>{if(!vid.paused&&!vid.ended)return;stepHue()},1000)}
+function stopHue(){clearInterval(hueTimer);hueTimer=0;store.set('hueT',hueT)}
+$('rgb').checked=store.get('bgRgb',reduce?'0':'1')==='1';
+$('rgb').onchange=()=>{store.set('bgRgb',$('rgb').checked?'1':'0');$('rgb').checked?startHue():stopHue()};
+stepHue();if($('rgb').checked)startHue();
+addEventListener('pagehide',()=>store.set('hueT',hueT));
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(hueTimer){clearInterval(hueTimer);hueTimer=0}}else if($('rgb').checked&&!hueTimer)startHue()});
+
+/* ---- install as an app (Chrome on phone and PC) ---- */
+let deferred=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').style.display='inline-block'});
+$('install').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('install').style.display='none'};
+addEventListener('appinstalled',()=>{$('install').style.display='none'});
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+
+let W=0,H=0,D=1,P=[],raf=0;
+const MAXP=420;
+function size(){D=Math.min(devicePixelRatio||1,2);W=fx.width=innerWidth*D;H=fx.height=innerHeight*D}
+/* floating sparkles rise from the bottom; every particle keeps its own colour offset, so the whole sky follows the colour drift */
+function mk0(init){return{x:Math.random()*W,y:init?Math.random()*H:H+10*D,vx:0,vy:-(Math.random()*1.1+.45)*D,r:(Math.random()*2.4+.8)*D,s:Math.random()*6.283,w:Math.random()*.04+.01,a:Math.random()*.45+.2,o:Math.random()*110-35,tw:Math.random()*6.283,life:-1,star:Math.random()>.9}}
+function mk(init){const o=mk0(init);o.bv=o.vy;return o}
+/* tentacle web: neighbours pull each other, joined by glowing, wavy, colourful lines; every spark leaves a comet tail */
+let T=0;
+const LINK=150,MAXLINK=3;
+let RINGS=[],BOLTS=[],METEORS=[],BOKEH=[];
+const hz=o=>(((hue+o)%360)+360)%360;
+function mkBokeh(init){return{x:Math.random()*W,y:init?Math.random()*H:H+90*D,r:(Math.random()*55+30)*D,v:(Math.random()*.25+.1)*D,o:Math.random()*160-40,a:Math.random()*.06+.035,s:Math.random()*6.28}}
+function addRing(x,y){if(RINGS.length<10)RINGS.push({x:x*D,y:y*D,r:6*D,a:.6,o:Math.random()*80})}
+function addBolts(x,y,n){
+  for(let b=0;b<n&&BOLTS.length<14;b++){
+    const ang=Math.random()*6.283,len=(90+Math.random()*130)*D,seg=8,pts=[[x*D,y*D]];
+    for(let i=1;i<=seg;i++){const t=i/seg,j=(1-t*.4)*16*D;pts.push([x*D+Math.cos(ang)*len*t+(Math.random()-.5)*2*j,y*D+Math.sin(ang)*len*t+(Math.random()-.5)*2*j])}
+    BOLTS.push({pts,life:1,o:Math.random()*90-10});
+  }
+}
+function addMeteor(){if(METEORS.length<2)METEORS.push({x:(Math.random()*.7+.3)*W,y:-30*D,vx:-(5+Math.random()*4)*D,vy:(3+Math.random()*3)*D,o:Math.random()*120-20,life:1})}
+function drawExtras(){
+  /* big soft bokeh orbs drifting up (behind everything) */
+  for(const b of BOKEH){
+    b.y-=b.v;b.s+=.004;b.x+=Math.sin(b.s)*.25*D;if(b.y<-b.r*1.5)Object.assign(b,mkBokeh(false));
+    const g=cx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r),h=hz(b.o);
+    g.addColorStop(0,'hsla('+h+',80%,62%,'+b.a+')');g.addColorStop(1,'hsla('+h+',80%,62%,0)');
+    cx.fillStyle=g;cx.beginPath();cx.arc(b.x,b.y,b.r,0,6.283);cx.fill();
+  }
+  /* shooting stars */
+  if(Math.random()<.004)addMeteor();
+  for(let i=METEORS.length-1;i>=0;i--){
+    const m=METEORS[i];m.x+=m.vx;m.y+=m.vy;
+    if(m.y>H+40*D||m.x<-60*D){METEORS.splice(i,1);continue}
+    const L=150*D,sp=Math.hypot(m.vx,m.vy),tx=m.x-m.vx/sp*L,ty=m.y-m.vy/sp*L,h=hz(m.o);
+    const g=cx.createLinearGradient(m.x,m.y,tx,ty);g.addColorStop(0,'hsla('+h+',90%,82%,.85)');g.addColorStop(1,'hsla('+h+',90%,60%,0)');
+    cx.strokeStyle=g;cx.lineWidth=2.2*D;cx.beginPath();cx.moveTo(m.x,m.y);cx.lineTo(tx,ty);cx.stroke();
+    glow(m.x,m.y,2.2*D,h,.9,false);
+  }
+  /* shockwave rings from a tap */
+  for(let i=RINGS.length-1;i>=0;i--){
+    const r=RINGS[i];r.r+=7*D;r.a*=.94;if(r.a<.02){RINGS.splice(i,1);continue}
+    const h=hz(r.o);
+    cx.strokeStyle='hsla('+h+',90%,70%,'+r.a*.35+')';cx.lineWidth=7*D;cx.beginPath();cx.arc(r.x,r.y,r.r,0,6.283);cx.stroke();
+    cx.strokeStyle='hsla('+h+',95%,78%,'+r.a+')';cx.lineWidth=1.6*D;cx.beginPath();cx.arc(r.x,r.y,r.r,0,6.283);cx.stroke();
+  }
+  /* little lightning bolts from a tap */
+  for(let i=BOLTS.length-1;i>=0;i--){
+    const b=BOLTS[i];b.life-=.07;if(b.life<=0){BOLTS.splice(i,1);continue}
+    const h=hz(b.o),fl=b.life*(.6+.4*Math.random());
+    cx.beginPath();cx.moveTo(b.pts[0][0],b.pts[0][1]);for(let k=1;k<b.pts.length;k++)cx.lineTo(b.pts[k][0],b.pts[k][1]);
+    cx.lineJoin='round';cx.strokeStyle='hsla('+h+',90%,62%,'+fl*.3+')';cx.lineWidth=6*D;cx.stroke();
+    cx.strokeStyle='hsla('+h+',95%,85%,'+fl+')';cx.lineWidth=1.4*D;cx.stroke();
+  }
+}
+function glow(x,y,r,h,a,star){
+  cx.fillStyle='hsla('+h+',80%,58%,'+(a*.2)+')';cx.beginPath();cx.arc(x,y,r*3.2,0,6.283);cx.fill();
+  cx.fillStyle='hsla('+h+',85%,70%,'+a+')';cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill();
+  if(star){cx.strokeStyle='hsla('+h+',90%,78%,'+(a*.8)+')';cx.lineWidth=D;cx.beginPath();cx.moveTo(x-r*3.5,y);cx.lineTo(x+r*3.5,y);cx.moveTo(x,y-r*3.5);cx.lineTo(x,y+r*3.5);cx.stroke()}
+}
+function tail(p,h,a){
+  const sp=Math.hypot(p.vx,p.vy);if(sp<.2)return;
+  const L=Math.min(46*D,sp*14),ux=-p.vx/sp,uy=-p.vy/sp;
+  for(let i=0;i<3;i++){
+    cx.strokeStyle='hsla('+h+',90%,66%,'+(a*.55*(1-i/3))+')';cx.lineWidth=Math.max(.6,p.r*(1.1-i*.3));
+    cx.beginPath();cx.moveTo(p.x+ux*L*i/3,p.y+uy*L*i/3);cx.lineTo(p.x+ux*L*(i+1)/3,p.y+uy*L*(i+1)/3);cx.stroke();
+  }
+}
+function frame(){
+  cx.clearRect(0,0,W,H);cx.globalCompositeOperation='lighter';T++;
+  drawExtras();
+  const R=LINK*D,R2=R*R;
+  /* 1) move */
+  for(let i=P.length-1;i>=0;i--){
+    const p=P[i];
+    if(p.life>=0){ /* spark from a touch */
+      p.life-=.018;if(p.life<=0){P.splice(i,1);continue}
+      p.vx*=.955;p.vy=p.vy*.955-.012*D;p.x+=p.vx;p.y+=p.vy;p.f=Math.min(1,p.life*1.6);
+    }else{
+      p.s+=p.w;p.vx*=.96;p.vy+=(p.bv-p.vy)*.03;p.x+=p.vx+Math.sin(p.s)*.5*D;p.y+=p.vy;
+      if(p.y<-20*D)Object.assign(p,mk(false));
+      p.f=Math.max(0,Math.min(1,p.y/(H*.3)));
+    }
+    p.l=0;p.tw+=.07;
+  }
+  /* 2) find neighbours with a grid, pull them together, draw the tentacle between them */
+  const grid=new Map();
+  for(let i=0;i<P.length;i++){P[i].i=i;const k=((P[i].x/R)|0)+','+((P[i].y/R)|0);const c=grid.get(k);c?c.push(P[i]):grid.set(k,[P[i]])}
+  let drawn=0;
+  for(const p of P){
+    if(p.l>=MAXLINK||p.f<.05)continue;
+    const gx=(p.x/R)|0,gy=(p.y/R)|0;
+    for(let ox=-1;ox<=1&&p.l<MAXLINK;ox++)for(let oy=-1;oy<=1&&p.l<MAXLINK;oy++){
+      const c=grid.get((gx+ox)+','+(gy+oy));if(!c)continue;
+      for(const q of c){
+        if(q.i<=p.i||q.l>=MAXLINK||q.f<.05)continue;
+        const dx=q.x-p.x,dy=q.y-p.y,d2=dx*dx+dy*dy;if(d2>R2||d2<4)continue;
+        const d=Math.sqrt(d2),k=1-d/R,pull=k*.035*D;
+        p.vx+=dx/d*pull;q.vx-=dx/d*pull;p.vy+=dy/d*pull*.4;q.vy-=dy/d*pull*.4;  /* they tug at each other */
+        p.l++;q.l++;
+        if(drawn>240)continue;drawn++;
+        const amp=Math.sin(T*.035+p.s+q.s)*d*.2,mx=(p.x+q.x)/2-dy/d*amp,my=(p.y+q.y)/2+dx/d*amp;
+        const h=((hue+(p.o+q.o)/2)%360+360)%360,a=k*Math.min(p.f,q.f)*.6;
+        cx.beginPath();cx.moveTo(p.x,p.y);cx.quadraticCurveTo(mx,my,q.x,q.y);
+        cx.strokeStyle='hsla('+h+',85%,60%,'+(a*.25)+')';cx.lineWidth=3.4*D;cx.stroke();   /* soft glow */
+        cx.strokeStyle='hsla('+h+',90%,72%,'+a+')';cx.lineWidth=1.1*D;cx.stroke();          /* bright core */
+      }
+    }
+  }
+  /* 3) draw the sparks with their tails */
+  for(const p of P){
+    const h=(((hue+p.o)%360)+360)%360,al=p.a*p.f*(.75+.25*Math.sin(p.tw));
+    tail(p,h,al);glow(p.x,p.y,p.r,h,al,p.star);
+  }
+  raf=requestAnimationFrame(frame);
+}
+function burst(x,y,n){
+  if(!raf)return;
+  for(let i=0;i<n&&P.length<MAXP;i++){
+    const ang=Math.random()*6.283,sp=(Math.random()*5+1.5)*D;
+    P.push({x:x*D,y:y*D,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-1.5*D,r:(Math.random()*2.4+1)*D,s:0,w:0,a:Math.random()*.4+.45,o:Math.random()*140-50,tw:Math.random()*6.283,life:Math.random()*.5+.7,star:Math.random()>.8});
+  }
+}
+let lastB=0;
+addEventListener('pointerdown',e=>{if(!raf)return;burst(e.clientX,e.clientY,28);addRing(e.clientX,e.clientY);addBolts(e.clientX,e.clientY,4)},{passive:true});
+addEventListener('pointermove',e=>{
+  const t=performance.now();if(t-lastB<30)return;lastB=t;
+  burst(e.clientX,e.clientY,e.pointerType==='mouse'&&!e.buttons?2:6); /* finger/mouse drag leaves a bright trail */
+},{passive:true});
+function startFx(){stopFx();size();const n=Math.round(Math.min(120,Math.max(55,innerWidth/11)));P=Array.from({length:n},()=>mk(true));RINGS=[];BOLTS=[];METEORS=[];BOKEH=Array.from({length:innerWidth<600?5:8},()=>mkBokeh(true));frame()}
+function stopFx(){cancelAnimationFrame(raf);raf=0;cx.clearRect(0,0,W,H)}
+addEventListener('resize',()=>{if(raf)startFx()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0}else if($('emb').checked&&!raf)startFx()});
+if($('emb').checked)startFx();
+vid.addEventListener('play',()=>{if(raf)stopFx()});
+vid.addEventListener('pause',()=>{if($('emb').checked&&!raf&&!document.hidden)startFx()});
+vid.addEventListener('ended',()=>{if($('emb').checked&&!raf&&!document.hidden)startFx()});
+
+/* ---- if the page ever reloads by itself, bring back the link and the video ---- */
+(function restore(){
+  const u=store.get('evdUrl','');if(u){url.value=u;sync()}
+  try{
+    const l=JSON.parse(store.get('evdLast','')||'null');
+    if(l&&l.id&&Date.now()-l.t<20*60*1000){
+      fetch('/media/'+l.id,{method:'HEAD'}).then(r=>{if(r.ok)showRes(l)}).catch(()=>{});
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
