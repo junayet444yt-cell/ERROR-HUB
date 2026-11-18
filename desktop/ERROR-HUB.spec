@@ -11,7 +11,7 @@ for exe in ("ffmpeg.exe", "ffprobe.exe", "deno.exe"):
     p = os.path.join(ROOT, "desktop", exe)
     if os.path.exists(p):
         binaries.append((p, "."))
-for pkg in ("yt_dlp", "curl_cffi", "certifi"):
+for pkg in ("yt_dlp", "yt_dlp_ejs", "curl_cffi", "certifi", "Cryptodome", "mutagen", "websockets", "brotli"):
     try:
         d, b, h = collect_all(pkg)
         datas += d; binaries += b; hidden += h

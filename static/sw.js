@@ -1,6 +1,6 @@
-/* Devil Video Downloader - service worker. Only the page itself is cached (so the app opens instantly).
+/* ERROR HUB DOWNLODER - service worker. Only the page itself is cached (so the app opens instantly).
    Downloads, videos and the API always go to the server. */
-const CACHE = "errorhub-v17";
+const CACHE = "errorhub-v18";
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(["/", "/icons/icon-192.png"])).catch(() => {})); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

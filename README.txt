@@ -60,9 +60,6 @@ For x.com / twitter.com links the app first asks FxTwitter, then VxTwitter (no l
 YOUTUBE / FACEBOOK
 Both are allowed now. YouTube needs a JavaScript runtime (the "deno" package in requirements.txt). YouTube often refuses data-centre servers like Render ("confirm you are not a bot"): then add your cookies (COOKIES_B64) or a proxy (PROXY_URL), or run the app on your own PC/home internet. Facebook: public videos work, private ones need cookies. In Render > Environment, delete BLOCKED_SITES if it is still set there.
 
-YOUTUBE IS OFF
-YouTube links are blocked again (BLOCKED_SITES = youtube.com,youtu.be,youtube-nocookie.com). In Render > Environment make sure BLOCKED_SITES is not set to "none".
-
 ==========================================================
 GITHUB-ONLY: WINDOWS .EXE AND ANDROID .APK (no Render needed)
 ==========================================================
