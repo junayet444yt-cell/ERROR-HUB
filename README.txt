@@ -49,7 +49,7 @@ The app pings itself every 4 minutes. For a stronger guarantee make a free monit
 that opens https://YOUR-APP.onrender.com/health every 5 minutes. (Free Render has 750 hours a month = enough for one app.)
 
 INSTALL AS AN APP
-Open your site in Chrome (phone or PC). Press the "Install as App" button on the page (or Chrome menu > Install app / Add to Home screen). It then opens like a normal app with its own icon.
+Open your site in Chrome (phone or PC). Use the Chrome menu > Install app / Add to Home screen. It then opens like a normal app with its own icon.
 
 COLOURS
 All colours drift slowly around the colour wheel by themselves. Gear button > "Auto colour change (RGB)" turns it off.
@@ -80,3 +80,31 @@ Optional: put your own cookies.txt next to the exe for Instagram/Facebook/X post
 Android: runs the downloader inside the phone (Python + yt-dlp). No ffmpeg on the phone, so only ready-made
 single-file videos (most Instagram / TikTok / X / Facebook posts) are saved; videos that are stored as separate
 video+audio streams may fail. Files are saved into the phone's Downloads folder.
+
+==========================================================
+ADMIN PANEL (who uses the app, how many downloads) - optional
+==========================================================
+Folder admin-worker/ is a tiny free Cloudflare Worker + D1 database. It is NOT part of the exe/apk.
+1. Cloudflare (free account) > D1 > create a database called errorhub.
+2. Workers & Pages > Create Worker > paste admin-worker/worker.js > Deploy.
+3. Worker > Settings > Bindings > add D1 database, variable name DB, pick errorhub.
+4. Worker > Settings > Variables and Secrets > add secrets ADMIN_PASSWORD (your password) and INGEST_KEY (any long random text).
+5. Open  https://YOUR-WORKER.workers.dev/admin  and log in.
+6. GitHub repo > Settings > Secrets and variables > Actions > New repository secret:
+     TELEMETRY_URL = https://YOUR-WORKER.workers.dev      TELEMETRY_KEY = the same text as INGEST_KEY
+7. Run "Build apps" again. The new exe/apk report anonymous counts (random id, site name, no links, no IP).
+On Render/web set the environment variables TELEMETRY_URL and TELEMETRY_KEY instead.
+Opt-out for a user: environment variable NO_TELEMETRY=1, or an empty file named no-telemetry in the app data folder
+(Windows: %LOCALAPPDATA%\ERROR-HUB-DOWNLODER).
+
+==========================================================
+WINDOWS: INSTALLER OR PORTABLE (fast start)
+==========================================================
+The "Build apps" workflow now makes two Windows files (the old single-file .exe unpacked ~400 MB on every start = slow):
+  ERROR-HUB-DOWNLODER-Setup.exe       installs once (no admin needed), Start-menu + desktop shortcut, opens fast
+  ERROR-HUB-DOWNLODER-portable.zip    unzip anywhere, run ERROR-HUB-DOWNLODER.exe inside the folder
+If the Setup step fails in GitHub Actions the portable zip is still built (that step is optional).
+The app opens a start screen at once, uses the same address every time (47821) so your saved settings/background stay.
+
+Quality: pick Best / 1080p / 720p / 480p / 360p / 240p / 144p / MP3 before pressing Get Video. Never upscaled.
+Own background: settings (gear) > Add background > any photo or video from your device (stored only on that device).

@@ -7,14 +7,31 @@ from functools import wraps
 from urllib.parse import urlparse, urljoin
 from concurrent.futures import ThreadPoolExecutor
 
-import yt_dlp
 from flask import Flask, request, jsonify, send_file, session, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-try:
-    from curl_cffi import requests as cffi
-except Exception:
-    cffi = None
+_yt = None
+_cffi_mod = False
+
+
+def ytdlp():
+    """yt-dlp is big: import it on first use (and in a background thread at start) so the app opens fast."""
+    global _yt
+    if _yt is None:
+        import yt_dlp as m
+        _yt = m
+    return _yt
+
+
+def get_cffi():
+    global _cffi_mod
+    if _cffi_mod is False:
+        try:
+            from curl_cffi import requests as m
+            _cffi_mod = m
+        except Exception:
+            _cffi_mod = None
+    return _cffi_mod
 
 # ---------- settings (all can be changed with Environment Variables on Render) ----------
 PASSWORD = os.environ.get("ACCESS_PASSWORD", "")            # empty = public, set = private
@@ -54,7 +71,7 @@ if os.environ.get("COOKIES_B64"):
     except Exception:
         pass
 
-app = Flask(__name__, static_folder=os.environ.get("STATIC_DIR") or "static")
+app = Flask(__name__, static_folder=os.environ.get("STATIC_DIR") or "static", static_url_path="/static")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 # Stable secret: logins survive a restart / sleep (a random key would log everybody out each time).
 app.secret_key = os.environ.get("SECRET_KEY") or (
@@ -78,7 +95,7 @@ def security_headers(r):
     r.headers["X-Frame-Options"] = "DENY"
     r.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
+        "style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
         "img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'")
     return r
 
@@ -183,6 +200,104 @@ if SELF_URL:
     threading.Thread(target=keepalive, daemon=True).start()
 
 
+# ---------- optional anonymous usage stats (for YOUR admin panel; see admin-worker/) ----------
+# Sends only: random install id, platform (exe/apk/web), app version, event name, site name (e.g. youtube.com), error kind.
+# Never sends video links, IP addresses or personal data. Off unless TELEMETRY_URL is set. User opt-out: NO_TELEMETRY=1
+# or an empty file called "no-telemetry" inside the app data folder.
+APP_VERSION = os.environ.get("ERRORHUB_VERSION", "30")
+PLATFORM = os.environ.get("ERRORHUB_PLATFORM", "web")          # exe / apk / web
+DATA_DIR = os.environ.get("DATA_DIR") or os.path.join(tempfile.gettempdir(), "errorhub-data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+
+def _tel_conf():
+    url, key = os.environ.get("TELEMETRY_URL", ""), os.environ.get("TELEMETRY_KEY", "")
+    if not url:
+        try:
+            with open(os.path.join(app.static_folder, "telemetry.json"), encoding="utf-8") as f:
+                c = json.load(f)
+            url, key = str(c.get("url", "")), str(c.get("key", ""))
+        except Exception:
+            pass
+    if os.environ.get("NO_TELEMETRY") or os.path.exists(os.path.join(DATA_DIR, "no-telemetry")):
+        return "", ""
+    url = url.strip().rstrip("/")
+    return (url, key.strip()) if url.startswith(("https://", "http://127.0.0.1")) and key.strip() else ("", "")
+
+
+TEL_URL, TEL_KEY = _tel_conf()
+
+
+def _install_id():
+    p = os.path.join(DATA_DIR, "install_id")
+    try:
+        with open(p) as f:
+            v = f.read().strip()
+        if re.fullmatch(r"[a-f0-9]{16,64}", v):
+            return v
+    except OSError:
+        pass
+    v = uuid.uuid4().hex
+    try:
+        with open(p, "w") as f:
+            f.write(v)
+    except OSError:
+        pass
+    return v
+
+
+INSTALL_ID = _install_id() if PLATFORM != "web" else ""
+
+
+def track(ev, host="", err=""):
+    """Fire-and-forget: never slows or breaks a download."""
+    if not TEL_URL:
+        return
+    try:
+        uid = INSTALL_ID or hashlib.sha256(("%s|%s|%s" % (time.strftime("%Y-%m-%d"), request.remote_addr, app.secret_key)).encode()).hexdigest()[:16]
+        body = json.dumps({"k": TEL_KEY, "id": uid, "ev": ev, "p": PLATFORM, "v": APP_VERSION, "h": host, "e": err}).encode()
+    except Exception:
+        return
+
+    def send():
+        try:
+            import urllib.request
+            urllib.request.urlopen(urllib.request.Request(TEL_URL + "/t", data=body, headers={"Content-Type": "application/json", "User-Agent": "errorhub"}), timeout=8).read()
+        except Exception:
+            pass
+    threading.Thread(target=send, daemon=True).start()
+
+
+def site_of(url):
+    h = (urlparse(url).hostname or "").lower()
+    return h[4:] if h.startswith("www.") else h
+
+
+def err_kind(msg, url):
+    m = (msg or "").lower()
+    yt = re.search(r"youtu(\.be|be\.com)", url.lower())
+    if "does not pass filter" in m or "duration" in m or "live" in m:
+        return "too_long_or_live"
+    if yt and ANDROID:
+        return "youtube_on_android"
+    if yt and not shutil.which("deno"):
+        return "no_deno"
+    if re.search(r"sign in|not a bot|429|too many|login|log in|cookie|private|members|age|forbidden|403|blocked", m):
+        return "blocked_or_login"
+    if re.search(r"unsupported url|no video", m):
+        return "unsupported"
+    return "other"
+
+
+if TEL_URL and PLATFORM != "web":
+    def _beat():
+        track("open")
+        while True:
+            time.sleep(600)
+            track("hb")
+    threading.Thread(target=_beat, daemon=True).start()
+
+
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 PACKED = re.compile(r"\}\('((?:[^'\\]|\\.)*)',(\d+),(\d+),'((?:[^'\\]|\\.)*)'\.split\('\|'\)")
@@ -220,6 +335,7 @@ def page_get(url, referer=None):
     h = {"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"}
     if referer:
         h["Referer"] = referer
+    cffi = get_cffi()
     if cffi:
         kw = {"proxies": {"http": PROXY, "https": PROXY}} if PROXY else {}
         r = cffi.get(url, headers=h, impersonate="chrome", timeout=30, **kw)
@@ -407,14 +523,38 @@ def grab_candidate(direct, ref, vid):
     return run_ydl(direct, vid, {"Referer": ref, "Origin": p.scheme + "://" + p.netloc})
 
 
-def _ydl(url, vid, headers=None, yt_clients=None):
+QUALITIES = ("best", "2160", "1440", "1080", "720", "480", "360", "240", "144", "audio")
+
+
+def pick_quality(q):
+    q = str(q or "").strip().lower()
+    return q if q in QUALITIES else "1080"
+
+
+def build_format(q, has_ffmpeg):
+    """yt-dlp format string for the quality the user chose (a height limit; it never upscales)."""
+    q = pick_quality(q)
+    if q == "audio":
+        return "ba[ext=m4a]/ba/b"
+    h = "" if q == "best" else "[height<=%s]" % q
+    if not has_ffmpeg:  # no ffmpeg (Android): only ready-made single files
+        return "b%s[ext=mp4]/b%s/b[ext=mp4]/b" % (h, h)
+    if q == "best":     # true best (4K needs VP9/AV1, so do not force mp4 here)
+        return "bv*+ba/b"
+    if int(q) > 1080:   # 1440p / 4K only exist as VP9/AV1 (not mp4)
+        return "bv*[height<=%s]+ba/b[height<=%s]/bv*+ba/b" % (q, q)
+    return ("bv*%(h)s[ext=mp4]+ba[ext=m4a]/b%(h)s[ext=mp4]/bv*%(h)s+ba/b%(h)s/"
+            "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b") % {"h": h}
+
+
+def _ydl(url, vid, headers=None, yt_clients=None, quality="1080"):
     opts = {
         "outtmpl": os.path.join(CACHE, vid + ".%(ext)s"),
-        "format": "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/bv*[height<=1080]+ba/bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b",
+        "format": build_format(quality, bool(shutil.which("ffmpeg"))),
         "merge_output_format": "mp4",
         "noplaylist": True,
         "playlistend": 1,  # a page with several videos: never download them all
-        "match_filter": yt_dlp.utils.match_filter_func("!is_live & duration<=?%d" % (MAX_MINUTES * 60)),
+        "match_filter": ytdlp().utils.match_filter_func("!is_live & duration<=?%d" % (MAX_MINUTES * 60)),
         "quiet": True,
         "no_warnings": True,
         "socket_timeout": 30,
@@ -423,7 +563,7 @@ def _ydl(url, vid, headers=None, yt_clients=None):
         "max_filesize": MAX_MB * 1024 * 1024,
         "http_headers": {"User-Agent": UA, **(headers or {})},
     }
-    if cffi:  # look like a real Chrome browser so Cloudflare lets us in
+    if get_cffi():  # look like a real Chrome browser so Cloudflare lets us in
         try:
             from yt_dlp.networking.impersonate import ImpersonateTarget
             opts["impersonate"] = ImpersonateTarget("chrome")
@@ -437,30 +577,32 @@ def _ydl(url, vid, headers=None, yt_clients=None):
     if _deno:
         opts["js_runtimes"] = {"deno": {"path": _deno}}
     opts["remote_components"] = ["ejs:github"]  # fallback: fetch the challenge solver if the bundled one is missing/outdated
-    if not shutil.which("ffmpeg"):  # no ffmpeg (Android build): only take ready-made single files, nothing to merge
-        opts["format"] = "b[ext=mp4][height<=1080]/b[ext=mp4]/b"
+    if not shutil.which("ffmpeg"):  # no ffmpeg (Android build): nothing to merge
         opts.pop("merge_output_format", None)
+    elif pick_quality(quality) == "audio":  # audio only: make an MP3
+        opts.pop("merge_output_format", None)
+        opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
     host = (urlparse(url).hostname or "").lower()
     if yt_clients:  # YouTube: ask through a different "app" identity (some are not blocked on server IPs)
         opts.setdefault("extractor_args", {})["youtube"] = {"player_client": yt_clients}
     if os.path.exists(COOKIES) and (USE_COOKIES or any(d in host for d in ("instagram.com", "twitter.com", "x.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch"))):  # these sites often want a login on server IPs
         opts["cookiefile"] = COOKIES
-    with yt_dlp.YoutubeDL(opts) as y:
+    with ytdlp().YoutubeDL(opts) as y:
         return y.extract_info(url, download=True)
 
 
 YT_BLOCKED = re.compile(r"429|too many requests|sign in|not a bot|confirm you|forbidden|403|unavailable|blocked|po.?token|format", re.I)
 
 
-def run_ydl(url, vid, headers=None):
+def run_ydl(url, vid, headers=None, quality="1080"):
     host = (urlparse(url).hostname or "").lower()
     if not any(d in host for d in ("youtube.com", "youtu.be", "youtube-nocookie.com")):
-        return _ydl(url, vid, headers)
+        return _ydl(url, vid, headers, None, quality)
     url = re.sub(r"([?&])si=[^&#]*&?", r"\1", url).rstrip("?&")  # drop the share-tracking part
     last = None
     for clients in (None, ["tv", "web_safari"], ["android_vr"], ["web_embedded", "mweb"]):
         try:
-            return _ydl(url, vid, headers, clients)
+            return _ydl(url, vid, headers, clients, quality)
         except Exception as e:
             last = e
             drop(vid)
@@ -523,7 +665,7 @@ def health():
 
 @app.route("/api/diag")
 def diag():
-    return jsonify(yt_dlp=yt_dlp.version.__version__, deno=bool(shutil.which("deno")),
+    return jsonify(yt_dlp=ytdlp().version.__version__, deno=bool(shutil.which("deno")),
                    ffmpeg=bool(shutil.which("ffmpeg")), cookies=os.path.exists(COOKIES), android=ANDROID)
 
 
@@ -539,7 +681,7 @@ def on_error(e):
 @app.route("/api/status")
 def status():
     return jsonify(need=bool(PASSWORD), ok=bool(session.get("ok")) or not PASSWORD, contact=CONTACT,
-                   blocked=BLOCKED_NAMES, max_mb=MAX_MB)
+                   blocked=BLOCKED_NAMES, max_mb=MAX_MB, stats=bool(TEL_URL))
 
 
 @app.route("/api/login", methods=["POST"])
@@ -556,13 +698,13 @@ def login():
     return jsonify(error="Wrong password"), 403
 
 
-def reply(vid, info, alts):
+def reply(vid, info, alts, host="", quality=""):
     found = [f for f in glob.glob(os.path.join(CACHE, vid + ".*")) if not f.endswith((".part", ".ytdl"))]
     if not found:
         drop(vid)
         return jsonify(error="Video file not found (it may be too large - limit %d MB)." % MAX_MB), 400
     path = max(found, key=os.path.getsize)
-    title = (info.get("title") or "video")[:100]
+    title = clean_title(info.get("title"))
     mine = info.get("duration") or probe_duration(path)
     others = []
     for i, (u, r, d) in enumerate(alts[:6]):  # other videos found on the same page (not the one we are returning)
@@ -570,9 +712,13 @@ def reply(vid, info, alts):
             continue
         others.append({"n": i, "dur": d})
     with lock:
-        files[vid] = {"path": path, "title": title, "ts": time.time(), "alts": alts[:6]}
+        files[vid] = {"path": path, "title": title, "ts": time.time(), "alts": alts[:6], "host": host}
+    track("fetch_ok", host)
+    ext = os.path.splitext(path)[1].lstrip(".").lower()
+    is_audio = ext in ("mp3", "m4a", "opus", "ogg", "wav")
     return jsonify(id=vid, url="/media/" + vid, title=title, thumbnail=info.get("thumbnail"),
-                   duration=mine, size=os.path.getsize(path), others=others)
+                   duration=mine, size=os.path.getsize(path), others=others,
+                   height=None if is_audio else info.get("height"), ext=ext, audio=is_audio, asked=quality)
 
 
 @app.route("/api/alt", methods=["POST"])
@@ -597,7 +743,7 @@ def alt():
         except Exception as e:
             drop(vid)
             return jsonify(error="Could not get that video: " + re.sub(r"\s+", " ", str(e).replace("ERROR: ", ""))[:160]), 400
-        return reply(vid, info, item["alts"])
+        return reply(vid, info, item["alts"], item.get("host", ""))
     finally:
         slots.release()
 
@@ -617,6 +763,7 @@ def fetch():
     if not rate_ok("fetch"):
         return jsonify(error="Too many requests. Please wait a few minutes and try again."), 429
     url = re.sub(r"^(https?://)(?:www\.|mobile\.|m\.)?(?:fxtwitter|vxtwitter|fixupx|fixvx|twittpr)\.com", r"\1x.com", url, flags=re.I)
+    quality = pick_quality(body.get("quality"))
     ref_in = str(body.get("referer") or "").strip()
     if ref_in and (len(ref_in) > 2000 or not url_is_safe(ref_in)):
         ref_in = ""
@@ -636,7 +783,7 @@ def fetch():
                 err = e
         if info is None:
             try:
-                info = run_ydl(url, vid, {"Referer": ref_in} if ref_in else None)
+                info = run_ydl(url, vid, {"Referer": ref_in} if ref_in else None, quality)
             except Exception as e:
                 err = e
         if info is None and is_x(url) and os.path.exists(COOKIES):  # cookies were tried first, now the services
@@ -673,13 +820,14 @@ def fetch():
                             info = grab_candidate(bu, br, vid)
                         except Exception:
                             drop(vid)
-                            info = run_ydl(url, vid, {"Referer": ref_in} if ref_in else None)  # keep the first result
+                            info = run_ydl(url, vid, {"Referer": ref_in} if ref_in else None, quality)  # keep the first result
             except Exception:
                 pass
         if info is None:
             drop(vid)
             msg = str(err or "no video found on this page").replace("ERROR: ", "")
             msg = re.sub(r"\s+", " ", msg)[:200]
+            raw_msg = msg
             if "does not pass filter" in msg or "duration" in msg:
                 msg = "This video is too long (limit %d minutes) or is a live stream." % MAX_MINUTES
             elif re.search(r"youtu(\.be|be\.com)", url.lower()) and ANDROID:
@@ -696,13 +844,32 @@ def fetch():
                 msg = "Instagram wants a login. Add your cookies (COOKIES_B64 setting or cookies.txt) and try again. Private accounts need the cookies of an account that follows them."
             elif "403" in msg or "blocked" in msg:
                 msg += " | Try again in a few minutes, or paste the link of the page that shows the video."
+            track("fetch_fail", site_of(url), err_kind(raw_msg, url))
             return jsonify(error="Could not get the video: " + msg), 400
         if BLOCKED and str(info.get("extractor_key", "")).lower().startswith(BLOCKED_EXTRACTORS):
             drop(vid)
             return jsonify(error=BLOCK_MSG), 403
-        return reply(vid, info, alts)
+        return reply(vid, info, alts, site_of(url), quality)
     finally:
         slots.release()
+
+
+def clean_title(t):
+    t = re.sub(r"[\x00-\x1f\x7f\u2028\u2029]+", " ", str(t or ""))
+    t = re.sub(r"\s+", " ", t).strip()
+    return (t or "video")[:100]
+
+
+def download_header(title, ext):
+    import unicodedata
+    from urllib.parse import quote
+    t = re.sub(r'[\\/:*?"<>|]+', "", clean_title(title))
+    t = re.sub(r"\s+", " ", t).strip(" .")[:80] or "video"
+    full = t + ext
+    stem = unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode("ascii")
+    stem = re.sub(r"[^A-Za-z0-9._ -]+", "", stem).strip(" .") or "video"
+    plain = stem + ext
+    return "attachment; filename=\"%s\"; filename*=UTF-8''%s" % (plain, quote(full, safe=""))
 
 
 @app.route("/media/<vid>")
@@ -712,12 +879,28 @@ def media(vid):
     if not item or not os.path.exists(item["path"]):
         return "File expired. Paste the link again.", 404
     item["ts"] = time.time()  # still in use: keep it
+    rng = request.headers.get("Range", "")
+    if request.args.get("dl") == "1" and (not rng or rng.startswith("bytes=0-")):
+        track("download", item.get("host", ""))
     ext = os.path.splitext(item["path"])[1]
-    safe = "".join(c for c in item["title"] if c not in '\\/:*?"<>|').strip() or "video"
-    return send_file(item["path"], mimetype=mimetypes.guess_type(item["path"])[0] or "video/mp4",
-                     conditional=True, as_attachment=request.args.get("dl") == "1",
-                     download_name=safe + ext)
+    r = send_file(item["path"], mimetype=mimetypes.guess_type(item["path"])[0] or "video/mp4", conditional=True)
+    if request.args.get("dl") == "1":
+        r.headers["Content-Disposition"] = download_header(item["title"], ext)
+    return r
+
+
+def serve(host, port):
+    """Production-grade server for the desktop / Android app (the Flask dev server is only a fallback)."""
+    try:
+        from waitress import serve as _serve
+    except ImportError:
+        app.run(host=host, port=port, threaded=True, use_reloader=False)
+        return
+    _serve(app, host=host, port=port, threads=8, channel_timeout=3600, cleanup_interval=30, ident="errorhub")
+
+
+threading.Thread(target=lambda: (ytdlp(), get_cffi()), daemon=True).start()  # warm up while the page is loading
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    serve("0.0.0.0", int(os.environ.get("PORT", 10000)))

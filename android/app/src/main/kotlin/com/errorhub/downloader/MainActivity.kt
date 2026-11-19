@@ -101,7 +101,7 @@ class MainActivity : Activity() {
     private fun startServer() {
         if (port == 0 && !starting) {
             starting = true
-            val p = ServerSocket(0).use { it.localPort }
+            val p = try { ServerSocket(47821).use { it.localPort } } catch (e: Exception) { ServerSocket(0).use { it.localPort } }
             val staticDir = File(filesDir, "static")
             thread {
                 try {

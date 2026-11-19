@@ -3,295 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0d0206">
+<meta name="theme-color" content="#06030d">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <title>ERROR HUB DOWNLODER</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Metal+Mania&family=Chakra+Petch:wght@400;600&family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600&family=Cormorant+Garamond:ital,wght@1,600&display=swap">
 <style>
-:root{--h:0;--bg:#0d0206;--txt:#fff1ea;
---card:hsl(calc(340 + var(--h)) 70% 7%);--line:hsl(calc(345 + var(--h)) 66% 21%);--mut:hsl(calc(14 + var(--h)) 52% 74%);
---a:hsl(calc(352 + var(--h)) 100% 56%);--b:hsl(calc(33 + var(--h)) 100% 50%);--c:hsl(calc(48 + var(--h)) 100% 62%);
---d1:hsl(calc(350 + var(--h)) 82% 26%);--d2:hsl(calc(28 + var(--h)) 100% 24%);--d3:hsl(calc(325 + var(--h)) 78% 16%);--d4:hsl(calc(340 + var(--h)) 66% 14%)}
-*{box-sizing:border-box}
-html{background:var(--bg)}
-body{margin:0;min-height:100vh;font-family:"Chakra Petch",system-ui,sans-serif;color:var(--txt)}
-/* live background: NOT blurred by default, you control the blur with the slider */
-#bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
-background:radial-gradient(900px 500px at 10% -10%,var(--d1) 0,transparent 60%),radial-gradient(800px 500px at 100% 0,var(--d2) 0,transparent 55%),radial-gradient(700px 400px at 50% 110%,var(--d3) 0,transparent 60%),var(--bg);
-filter:var(--bf,none)}
-#bg.blur{transform:scale(1.08)}
+@font-face{font-family:Orbitron;src:url(/static/fonts/orbitron-latin-wght-normal.woff2) format("woff2");font-weight:400 900;font-display:swap}
+@font-face{font-family:Rajdhani;src:url(/static/fonts/rajdhani-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:Rajdhani;src:url(/static/fonts/rajdhani-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:Rajdhani;src:url(/static/fonts/rajdhani-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:Rajdhani;src:url(/static/fonts/rajdhani-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
+
+:root{
+  color-scheme:dark;
+  --ink:#06030d; --ink2:#0d0720;
+  --violet:#8b5cf6; --violet2:#6d3df0; --magenta:#e0409f; --blue:#4cc9ff; --amber:#ffa24a;
+  --text:#efeaff; --mut:#a89fd3; --line:rgba(76,201,255,.34);
+  --ui:Rajdhani,"Segoe UI",system-ui,sans-serif; --disp:Orbitron,Rajdhani,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--ink)}
+body{margin:0;min-height:100vh;color:var(--text);font:500 18px/1.45 var(--ui);overflow-x:hidden;background:var(--ink)}
+button,.chip,.tag,label,.brand,.social a{user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:var(--blue)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:6px}
+
+/* ============ scenery (all CSS/SVG, no images) ============ */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.sky{position:absolute;inset:0;background:
+  radial-gradient(1100px 650px at 86% -6%,rgba(255,64,160,.50),transparent 62%),
+  radial-gradient(900px 620px at 62% 8%,rgba(139,92,246,.42),transparent 68%),
+  radial-gradient(700px 500px at 0% 40%,rgba(60,30,150,.40),transparent 70%),
+  linear-gradient(180deg,#2c0f40 0%,#1a0b38 34%,#0c0720 66%,#05030b 100%)}
+.moon{position:absolute;right:-7%;top:-14%;width:min(52vw,560px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,232,246,.96) 0 8%,rgba(255,130,196,.78) 17%,rgba(255,64,160,.36) 38%,rgba(255,64,160,0) 68%);
+  animation:pulse 9s ease-in-out infinite}
+.aura{position:absolute;border-radius:50%;filter:blur(46px);will-change:transform}
+.a1{right:-14%;bottom:-24%;width:78vw;height:62vh;background:radial-gradient(closest-side,rgba(76,201,255,.26),rgba(139,92,246,.22) 55%,transparent);animation:drift 24s ease-in-out infinite alternate}
+.a2{left:-18%;bottom:-18%;width:70vw;height:52vh;background:radial-gradient(closest-side,rgba(139,92,246,.30),rgba(60,30,150,.18) 60%,transparent);animation:drift 30s ease-in-out infinite alternate-reverse}
+.city{position:absolute;left:0;right:0;bottom:0;width:100%;height:56vh;min-height:300px}
+.city path{fill:#04020d}
+.city .rim{fill:none;stroke:rgba(150,110,255,.38);stroke-width:1.4}
+.city .win{fill:var(--blue);animation:flick 5s ease-in-out infinite}
+.fog{position:absolute;left:0;right:0;bottom:0;height:46vh;background:linear-gradient(180deg,transparent,rgba(86,40,170,.22) 55%,rgba(10,5,26,.78))}
+.eye{position:absolute;width:5px;height:3px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px 2px rgba(76,201,255,.8);animation:blink 7s infinite}
+#usr{position:absolute;inset:-30px;display:none}
+#usr.on{display:block}
+#bgv,#bgi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#bgi{background-size:cover;background-position:center}
 #fx{position:absolute;inset:0;width:100%;height:100%}
-#bgv{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;background:transparent;display:none}
-#shade{position:absolute;inset:0;background:#000;opacity:0}
-p.sub,.note,#msg{text-shadow:0 1px 8px #000c}
-main{position:relative;max-width:780px;margin:0 auto;padding:30px 16px 80px}
-h1,h2{font-family:Creepster,cursive;font-weight:400;letter-spacing:.04em}
-h1{font-size:clamp(36px,10vw,74px);margin:6px 0 2px;line-height:1.05;background:linear-gradient(90deg,var(--a),var(--b),var(--c),var(--b),var(--a));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
-filter:drop-shadow(0 0 18px color-mix(in srgb,var(--a) 53%,transparent));animation:shine 6s linear infinite}
-@keyframes shine{to{background-position:200% center}}
-.brand{display:flex;flex-direction:column;align-items:flex-start;margin:6px 0 4px;line-height:1;background:none;-webkit-background-clip:border-box;background-clip:border-box;color:inherit;filter:none;animation:none}
-.brand .dev{font-family:Creepster,cursive;font-weight:400;font-size:clamp(40px,11.5vw,78px);letter-spacing:.05em;background:linear-gradient(90deg,var(--a),var(--b),var(--c),var(--b),var(--a));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--a) 55%,transparent))}
-.brand .ang{font-family:"Cinzel Decorative",serif;font-weight:900;font-size:clamp(16px,5.2vw,38px);letter-spacing:.1em;margin-top:7px;white-space:nowrap;background:linear-gradient(180deg,#fff,#fff0c4 55%,#ffd98a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px #fff8d6aa) drop-shadow(0 0 20px #ffe7a066)}
-.brand .ang::after{content:"";display:block;height:2px;margin-top:9px;border-radius:2px;background:linear-gradient(90deg,var(--a),#fff 45%,transparent)}
-p.sub{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-weight:600;color:var(--mut);margin:0 0 24px;font-size:21px;line-height:1.3}
-.box{display:flex;gap:10px;flex-wrap:wrap}
-.field{position:relative;flex:1 1 280px}
-input[type=url],input[type=password]{width:100%;padding:15px 44px 15px 16px;font:inherit;color:var(--txt);background:color-mix(in srgb,var(--card) 80%,transparent);border:2px solid var(--line);border-radius:14px;outline:none;transition:border-color .2s,box-shadow .2s}
-input[type=url]:focus,input[type=password]:focus{border-color:var(--b);box-shadow:0 0 0 4px color-mix(in srgb,var(--b) 19%,transparent),0 0 28px color-mix(in srgb,var(--a) 25%,transparent)}
-.hint{margin:10px 2px 0;font-size:15px;color:var(--c);text-shadow:0 1px 8px #000c}
-.x{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:0;border-radius:50%;background:var(--line);color:#fff;font-size:16px;cursor:pointer;display:none}
-button.go,.dl,.close{font-family:"Metal Mania",cursive;letter-spacing:.05em}
-button.go{position:relative;overflow:hidden;padding:15px 28px;font-size:20px;color:#fff;background:linear-gradient(90deg,var(--a),var(--b));border:0;border-radius:14px;cursor:pointer;text-shadow:0 1px 6px #0008;box-shadow:0 6px 24px color-mix(in srgb,var(--a) 33%,transparent);transition:transform .15s,box-shadow .2s}
-button.go::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#fff5,transparent);transform:skewX(-20deg);transition:left .5s}
-button.go:hover:not(:disabled)::after{left:130%}
-button.go:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 30px color-mix(in srgb,var(--a) 53%,transparent)}
-button.go:active:not(:disabled){transform:translateY(0)}
-button.pbtn{flex:1;padding:9px 10px;font-family:"Metal Mania",cursive;font-size:16px;letter-spacing:.04em;color:var(--txt);background:var(--d4);border:2px solid var(--line);border-radius:10px;cursor:pointer;transition:border-color .2s}
-button.pbtn:hover{border-color:var(--b)}
-button.pbtn.main{color:#1a0300;background:linear-gradient(90deg,var(--c),var(--b));border-color:transparent}
-button:disabled{opacity:.6;cursor:wait}
-button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--c);outline-offset:2px}
-details{margin-top:12px;color:var(--mut)}
-summary{cursor:pointer;font-size:14px;padding:4px 0}
-details input{margin-top:8px;padding-right:16px}
-#msg{margin:16px 0;min-height:24px;color:var(--mut)}
-#msg.err{color:#ff7a8a}
-.spin{display:inline-block;width:16px;height:16px;border:3px solid var(--line);border-top-color:var(--b);border-radius:50%;animation:s .8s linear infinite;vertical-align:-3px;margin-right:8px}
-@keyframes s{to{transform:rotate(360deg)}}
-#res{display:none;background:color-mix(in srgb,var(--card) 90%,transparent);border:2px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 0 50px color-mix(in srgb,var(--a) 19%,transparent),0 20px 60px #000a;animation:pop .35s ease-out}
-@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-video{width:100%;max-height:70vh;background:#000;display:block}
-.info{padding:14px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.info h2{flex:1 1 100%;margin:0;font-family:"Cinzel Decorative",serif;font-weight:700;letter-spacing:.03em;font-size:19px;line-height:1.3;word-break:break-word}
-.dl{display:inline-block;padding:11px 22px;font-size:19px;color:#1a0300;background:linear-gradient(90deg,var(--c),var(--b));border-radius:12px;text-decoration:none;box-shadow:0 4px 18px color-mix(in srgb,var(--b) 27%,transparent);transition:transform .15s}
-.dl:hover{transform:translateY(-2px)}
-.close{padding:11px 18px;font-size:19px;color:var(--txt);background:transparent;border:2px solid var(--line);border-radius:12px;cursor:pointer;transition:border-color .2s}
-.close:hover{border-color:var(--a)}
-.note{margin-top:34px;font-size:13px;color:var(--mut);line-height:1.6}
-.note a{color:var(--c)}
-.size{color:var(--mut);font-size:14px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.top h1{flex:1 1 auto;min-width:0}
-.social{display:flex;flex-direction:column;align-items:stretch;gap:7px;flex:none}
-.discord{display:flex;width:auto;align-items:center;gap:8px;margin:0;padding:7px 16px 7px 11px;font-family:"Metal Mania",cursive;font-size:15px;letter-spacing:.05em;color:#fff;text-decoration:none;background:linear-gradient(135deg,#5865f2,#7983f5);border-radius:999px;box-shadow:0 4px 16px #5865f277,inset 0 1px 0 #ffffff40;transition:transform .15s,box-shadow .2s}
-.discord svg{width:19px;height:19px;flex:none;filter:drop-shadow(0 1px 4px #0006)}
-.discord:hover{transform:translateY(-2px);box-shadow:0 10px 34px #5865f2cc,inset 0 1px 0 #ffffff55}
-.discord:active{transform:translateY(0)}
-.discord.facebook{background:linear-gradient(135deg,#1877f2,#4a9bff);box-shadow:0 4px 16px #1877f277,inset 0 1px 0 #ffffff40}
-.discord.facebook:hover{box-shadow:0 10px 34px #1877f2cc,inset 0 1px 0 #ffffff55}
-/* background settings */
-#gear{position:fixed;right:14px;bottom:14px;width:46px;height:46px;border-radius:50%;border:2px solid var(--line);background:color-mix(in srgb,var(--card) 93%,transparent);color:var(--c);font-size:21px;cursor:pointer;z-index:5;transition:transform .3s,border-color .2s}
-#gear:hover{transform:rotate(60deg);border-color:var(--b)}
-#panel{position:fixed;right:14px;bottom:70px;width:min(280px,calc(100vw - 28px));padding:16px;background:color-mix(in srgb,var(--card) 95%,transparent);border:2px solid var(--line);border-radius:16px;z-index:5;display:none;box-shadow:0 10px 40px #000a}
-#panel h3{margin:0 0 12px;font-family:"Metal Mania",cursive;font-weight:400;font-size:20px;color:var(--c)}
-#panel label{display:flex;justify-content:space-between;font-size:14px;color:var(--mut);margin-top:10px}
-#panel input[type=range]{width:100%;accent-color:var(--b)}
-#panel .btns{display:flex;gap:8px;margin-top:6px}
-#panel{max-height:calc(100vh - 100px);overflow:auto}
-#panel .row{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:14px;color:var(--mut)}
-#lock{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;padding:20px;z-index:9}
-#lock div{max-width:340px;width:100%}
-@media (prefers-reduced-motion:reduce){.spin,h1,#res{animation:none}}
+#shade{position:absolute;inset:0;background:#000;opacity:.2}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,transparent 45%,rgba(2,1,8,.72))}
+@keyframes pulse{0%,100%{opacity:.88;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
+@keyframes drift{to{transform:translate3d(-5%,-3%,0) scale(1.08)}}
+@keyframes flick{0%,100%{opacity:.85}45%{opacity:.35}60%{opacity:.95}}
+@keyframes blink{0%,92%,100%{opacity:.9}95%{opacity:0}}
 
-/* ===== v12: calmer, darker colours + advanced glass UI (this block overrides the rules above) ===== */
-@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
-:root{--bg:#060103;--txt:#f1e4dd;
---card:hsl(calc(340 + var(--h)) 55% 6%);--line:hsl(calc(345 + var(--h)) 40% 17%);--mut:hsl(calc(14 + var(--h)) 30% 68%);
---a:hsl(calc(352 + var(--h)) 58% 44%);--b:hsl(calc(30 + var(--h)) 62% 42%);--c:hsl(calc(44 + var(--h)) 48% 60%);
---d1:hsl(calc(350 + var(--h)) 50% 13%);--d2:hsl(calc(28 + var(--h)) 52% 11%);--d3:hsl(calc(325 + var(--h)) 46% 9%);--d4:hsl(calc(340 + var(--h)) 45% 11%)}
-html{background:#060103;scroll-behavior:smooth}
-html,body{overscroll-behavior-y:contain}
-::selection{background:color-mix(in srgb,var(--a) 45%,transparent);color:#fff}
-*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
-#bg{background:radial-gradient(900px 520px at 8% -10%,var(--d1) 0,transparent 62%),radial-gradient(800px 520px at 100% 0,var(--d2) 0,transparent 58%),radial-gradient(700px 420px at 50% 112%,var(--d3) 0,transparent 62%),#060103}
-.brand .dev{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--a) 30%,transparent))}
-.brand .ang{background:linear-gradient(180deg,#f4ecd8,#e6d3a2 55%,#c9a964);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 5px #f4e6b855)}
-.brand .ang::after{background:linear-gradient(90deg,var(--a),#e8dcc0 45%,transparent)}
-p.sub{color:var(--mut)}
-.hint{color:var(--c);text-shadow:none;opacity:.9}
-.hint2{margin-top:4px;font-size:13px;color:var(--mut);opacity:.85}
-/* glass card */
-.glass{position:relative;border-radius:22px;padding:18px;border:1px solid rgba(255,255,255,.07);
-background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012)),color-mix(in srgb,var(--card) 66%,transparent);
--webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);
-box-shadow:0 18px 48px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
-.glass::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;
-background:conic-gradient(from var(--ang),transparent 0 68%,color-mix(in srgb,var(--b) 65%,transparent) 84%,transparent 100%);
--webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:spinb 9s linear infinite}
-.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s;
-background:radial-gradient(280px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.065),transparent 62%)}
-.glass:hover::after{opacity:1}
-@keyframes spinb{to{--ang:360deg}}
-#res.glass{padding:0;overflow:hidden;border:1px solid rgba(255,255,255,.07)}
-#res.glass .info{padding:14px 18px 16px}
-#res video{border-radius:0}
-input[type=url],input[type=password]{background:rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.1);border-radius:14px}
-input[type=url]:focus,input[type=password]:focus{border-color:color-mix(in srgb,var(--b) 80%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--b) 16%,transparent)}
-#url{padding-right:84px}
-.pst{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:6px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:var(--c);font:600 13px "Chakra Petch",system-ui,sans-serif;cursor:pointer;transition:background .2s,border-color .2s}
-.pst:hover{background:rgba(255,255,255,.12);border-color:color-mix(in srgb,var(--b) 60%,transparent)}
-.x{background:rgba(255,255,255,.1)}
-/* buttons: softer light, with ripple */
-button.go,.dl,.discord{position:relative;overflow:hidden}
-button.go{background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 4px 14px color-mix(in srgb,var(--a) 28%,transparent);text-shadow:0 1px 3px #0006;border-radius:14px}
-button.go:hover:not(:disabled){box-shadow:0 8px 20px color-mix(in srgb,var(--a) 38%,transparent)}
-.dl{background:linear-gradient(135deg,var(--c),var(--b));box-shadow:0 3px 12px color-mix(in srgb,var(--b) 25%,transparent)}
-button.pbtn.main{background:linear-gradient(135deg,var(--c),var(--b))}
-.discord{box-shadow:0 3px 12px #5865f255,inset 0 1px 0 #ffffff30}
-.discord:hover{box-shadow:0 6px 18px #5865f288,inset 0 1px 0 #ffffff40}
-.discord.facebook{box-shadow:0 3px 12px #1877f255,inset 0 1px 0 #ffffff30}
-.discord.facebook:hover{box-shadow:0 6px 18px #1877f288,inset 0 1px 0 #ffffff40}
-.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.32);transform:scale(0);animation:rip .6s ease-out forwards;pointer-events:none}
-@keyframes rip{to{transform:scale(1);opacity:0}}
-button:active:not(:disabled):not(.pst):not(.x),.dl:active{transform:scale(.97)}
-.pst:active{transform:translateY(-50%) scale(.95)}
-.x:active{transform:translateY(-50%) scale(.9)}
-.pst,.x{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.alts{flex:1 1 100%;display:none;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
-.alts button{padding:5px 12px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.06);color:var(--c);font:600 13px "Chakra Petch",system-ui,sans-serif;cursor:pointer;transition:background .2s}
-.alts button:hover{background:rgba(255,255,255,.13)}
-/* progress bar */
-.bar{height:3px;border-radius:3px;margin-top:14px;background:rgba(255,255,255,.06);overflow:hidden;opacity:0;transition:opacity .3s}
+/* ============ layout ============ */
+main{position:relative;z-index:2;max-width:760px;margin:0 auto;padding:clamp(18px,4vw,44px) 16px 90px}
+.top{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-bottom:6px}
+.brand{margin:8px 0 0;line-height:1;display:flex;flex-direction:column;align-items:center;gap:8px}
+.brand .a{font:900 clamp(38px,9vw,72px)/1 var(--disp);letter-spacing:.06em;
+  background:linear-gradient(180deg,#fff 0%,#d9c7ff 38%,#7fd6ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(139,92,246,.75)) drop-shadow(0 0 40px rgba(76,201,255,.28))}
+.brand .b{display:flex;align-items:center;gap:14px;font:700 clamp(13px,3.2vw,19px)/1 var(--disp);letter-spacing:.62em;color:var(--blue);text-shadow:0 0 14px rgba(76,201,255,.7);padding-left:.62em}
+.brand .b::before,.brand .b::after{content:"";width:clamp(26px,9vw,80px);height:1px;background:linear-gradient(90deg,transparent,var(--blue))}
+.brand .b::after{transform:scaleX(-1)}
+.social{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.social a{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:999px;text-decoration:none;color:var(--text);font:600 15px var(--ui);letter-spacing:.04em;
+  background:rgba(20,12,52,.55);border:1px solid rgba(139,92,246,.45);backdrop-filter:blur(8px);transition:.18s}
+.social a:hover{border-color:var(--blue);box-shadow:0 0 18px rgba(76,201,255,.35);transform:translateY(-1px)}
+.social svg{width:19px;height:19px;color:var(--blue)}
+.tag-line{text-align:center;color:var(--mut);margin:14px 0 22px;font-size:19px;letter-spacing:.03em}
+
+/* "system window" panel: cut corners + glowing blue edge */
+.sys{--c:16px;position:relative;padding:1px;margin:0 0 16px;
+  background:linear-gradient(135deg,var(--blue),rgba(139,92,246,.7) 46%,rgba(76,201,255,.85));
+  clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));
+  filter:drop-shadow(0 0 22px rgba(124,77,255,.28))}
+.sys>.in{position:relative;padding:18px 20px 20px;
+  background:linear-gradient(180deg,rgba(24,14,60,.80),rgba(8,4,22,.88));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  clip-path:polygon(calc(var(--c) - .6px) 0,100% 0,100% calc(100% - var(--c) + .6px),calc(100% - var(--c) + .6px) 100%,0 100%,0 calc(var(--c) - .6px))}
+.cap{display:flex;align-items:center;gap:9px;font:700 12px var(--disp);letter-spacing:.3em;color:var(--blue);margin:0 0 14px;text-transform:uppercase}
+.cap::before{content:"";width:8px;height:8px;background:var(--blue);transform:rotate(45deg);box-shadow:0 0 10px var(--blue)}
+.cap::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(76,201,255,.5),transparent)}
+.bar{position:absolute;left:0;right:0;top:0;height:3px;overflow:hidden;opacity:0;transition:.2s}
 .bar.on{opacity:1}
-.bar i{display:block;height:100%;width:38%;border-radius:3px;background:linear-gradient(90deg,transparent,var(--b),var(--a),transparent);animation:slide 1.3s ease-in-out infinite}
-@keyframes slide{from{transform:translateX(-110%)}to{transform:translateX(280%)}}
-#gear,#panel{background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1)}
-#panel{border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
-/* one orchestrated entrance */
-.rv{opacity:0;transform:translateY(12px);animation:rv .65s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--i,0) * 90ms)}
-@keyframes rv{to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;animation:none}.glass::before,.bar i,.brand .dev{animation:none}}
+.bar i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--blue),var(--violet),transparent);animation:slide 1.1s linear infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(280%)}}
 
-/* ===== v17: clear panel + link bar so the background video shows through (slider = how frosted) ===== */
-:root{--gl:0}
-.glass{background:linear-gradient(180deg,rgba(255,255,255,calc(.02 + .03 * var(--gl))),rgba(255,255,255,0)),rgba(0,0,0,calc(.04 + .42 * var(--gl)));
--webkit-backdrop-filter:blur(calc(16px * var(--gl))) saturate(1.1);backdrop-filter:blur(calc(16px * var(--gl))) saturate(1.1);
-border-color:rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(0,0,0,calc(.12 + .3 * var(--gl))),inset 0 1px 0 rgba(255,255,255,.08)}
-.glassoff .glass{-webkit-backdrop-filter:none;backdrop-filter:none}
-input[type=url],input[type=password]{background:rgba(0,0,0,calc(.06 + .28 * var(--gl)));border:1px solid rgba(255,255,255,.22);color:#fff}
-input[type=url]::placeholder{color:rgba(255,255,255,.72)}
-p.sub,.hint,.hint2,.note,details summary,#msg,.alts,.size{text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 10px rgba(0,0,0,.6)}
-.pst,.x{background:rgba(0,0,0,.28)}
+/* link box */
+.field{position:relative}
+#url{width:100%;height:56px;padding:0 112px 0 18px;border-radius:12px;color:var(--text);font:600 19px var(--ui);
+  background:rgba(4,2,14,.78);border:1px solid rgba(139,92,246,.42);outline:none;transition:.18s}
+#url::placeholder{color:#7d74a8}
+#url:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(76,201,255,.18),0 0 26px rgba(76,201,255,.22)}
+.pst{position:absolute;right:8px;top:8px;height:40px;padding:0 16px;border-radius:9px;border:1px solid rgba(76,201,255,.5);background:rgba(76,201,255,.10);color:var(--blue);font:700 14px var(--disp);letter-spacing:.12em;transition:.15s}
+.pst:hover{background:rgba(76,201,255,.22);box-shadow:0 0 16px rgba(76,201,255,.3)}
+.x{position:absolute;right:10px;top:12px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:var(--mut);display:none;font-size:16px}
+.x:hover{background:rgba(255,255,255,.16);color:#fff}
 
-/* ===== v18: soft colour clouds that drift behind everything (follow the colour change) ===== */
-#bg{animation:none;filter:var(--bf,none)}  /* no hue-rotate on the background: your video keeps its real colours */
-.aur{position:absolute;display:block;width:62vmax;height:62vmax;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:.55;will-change:transform}
-.a1{left:-18vmax;top:-24vmax;background:radial-gradient(circle,color-mix(in srgb,var(--a) 36%,transparent),transparent 66%);animation:fl1 26s ease-in-out infinite alternate}
-.a2{right:-24vmax;top:6vh;background:radial-gradient(circle,color-mix(in srgb,var(--b) 32%,transparent),transparent 66%);animation:fl2 31s ease-in-out infinite alternate}
-.a3{left:16vw;bottom:-36vmax;background:radial-gradient(circle,color-mix(in srgb,var(--c) 26%,transparent),transparent 66%);animation:fl3 37s ease-in-out infinite alternate}
-@keyframes fl1{to{transform:translate(20vmax,16vmax) scale(1.18)}}
-@keyframes fl2{to{transform:translate(-22vmax,18vmax) scale(.9)}}
-@keyframes fl3{to{transform:translate(18vmax,-14vmax) scale(1.2)}}
-@media (prefers-reduced-motion:reduce){.aur{animation:none}}
+.qrow{margin:16px 0 4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.qlab{font:700 12px var(--disp);letter-spacing:.26em;color:var(--mut);margin-right:6px}
+.chip{height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(139,92,246,.42);background:rgba(20,12,52,.6);color:var(--text);font:700 15px var(--ui);letter-spacing:.04em;transition:.15s}
+.chip:hover{border-color:var(--blue)}
+.chip[aria-checked=true]{background:linear-gradient(135deg,var(--violet2),#3f7bff);border-color:transparent;color:#fff;box-shadow:0 0 18px rgba(109,61,240,.65)}
+.qnote{margin:6px 0 0;color:#8c83b8;font-size:14px}
 
-/* ===== v19: page text cannot be selected or copied (the link box stays editable) ===== */
-html,body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-input,textarea{-webkit-user-select:text;user-select:text}
-::selection{background:transparent}
-input::selection{background:color-mix(in srgb,var(--b) 45%,transparent)}
-img,a,svg{-webkit-user-drag:none;user-drag:none}
+.go{width:100%;height:58px;margin-top:16px;border:0;border-radius:12px;color:#fff;font:800 17px var(--disp);letter-spacing:.2em;text-transform:uppercase;position:relative;overflow:hidden;
+  background:linear-gradient(115deg,var(--violet2),var(--magenta) 62%,#ff7a59);box-shadow:0 8px 30px rgba(224,64,159,.35),inset 0 1px 0 rgba(255,255,255,.28);transition:.18s}
+.go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 38px rgba(224,64,159,.5),0 0 0 1px rgba(255,255,255,.18) inset}
+.go:active:not(:disabled){transform:translateY(1px)}
+.go:disabled{filter:saturate(.5) brightness(.8);cursor:progress}
+.hint{margin:14px 0 0;color:#9a91c6;font-size:15px;text-align:center}
 
-/* ===== v20: the Blur slider blurs ONLY the background video; sparkles, colour clouds and touch effects stay sharp ===== */
-#bg,#bg.blur{filter:none;transform:none;animation:none}
-#bgv{filter:var(--bf,none);transition:filter .25s}
-#bg.blur #bgv{transform:scale(1.08)} /* hides the soft edges the blur creates */
+#msg{min-height:0;margin:0 4px 14px;font-size:17px;color:var(--blue);display:flex;align-items:center;gap:10px}
+#msg:empty{display:none}
+#msg.err{color:#ff8aa8;padding:10px 14px;border-left:3px solid #ff4d7d;background:rgba(255,77,125,.10);border-radius:0 10px 10px 0;user-select:text;-webkit-user-select:text}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(76,201,255,.3);border-top-color:var(--blue);animation:rot .8s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}
 
-/* v21: cheaper colour clouds (no blend mode) so low-end phones stay smooth */
-.aur{mix-blend-mode:normal;opacity:.5}
+/* result */
+#res{display:none}
+#vid{display:block;width:100%;max-height:62vh;border-radius:12px;background:#000;border:1px solid rgba(139,92,246,.35)}
+#ttl{margin:14px 0 8px;font:700 21px/1.25 var(--ui);word-break:break-word;user-select:text;-webkit-user-select:text}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.tag{padding:3px 11px;border-radius:7px;font:700 14px var(--ui);letter-spacing:.06em;background:rgba(139,92,246,.18);border:1px solid rgba(139,92,246,.45);color:#d9ccff}
+.tag.q{background:rgba(76,201,255,.14);border-color:rgba(76,201,255,.6);color:var(--blue);box-shadow:0 0 12px rgba(76,201,255,.25)}
+.tag.a{background:rgba(255,162,74,.14);border-color:rgba(255,162,74,.6);color:var(--amber)}
+.low{margin:4px 0 0;color:var(--amber);font-size:15px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.dl{flex:1 1 220px;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:54px;border-radius:12px;text-decoration:none;color:#fff;font:800 15px var(--disp);letter-spacing:.18em;text-transform:uppercase;
+  background:linear-gradient(115deg,#2a8dff,var(--violet2));box-shadow:0 8px 28px rgba(76,150,255,.35),inset 0 1px 0 rgba(255,255,255,.28);transition:.18s}
+.dl:hover{transform:translateY(-1px);box-shadow:0 12px 34px rgba(76,150,255,.5)}
+.dl svg{width:20px;height:20px}
+.ghost{flex:0 0 auto;height:54px;padding:0 22px;border-radius:12px;border:1px solid rgba(139,92,246,.5);background:rgba(20,12,52,.6);font:700 14px var(--disp);letter-spacing:.14em;text-transform:uppercase;transition:.15s}
+.ghost:hover{border-color:var(--blue);box-shadow:0 0 16px rgba(76,201,255,.25)}
+.alts{display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;color:var(--mut);font-size:15px}
+.alts button{padding:5px 12px;border-radius:8px;border:1px solid rgba(139,92,246,.5);background:rgba(20,12,52,.6)}
+.alts button:hover{border-color:var(--blue)}
 
-/* ===== v25: occasional glitch flicker on the title ===== */
-.brand .dev{position:relative}
-.brand .dev::before,.brand .dev::after{content:attr(data-t);position:absolute;left:0;top:0;opacity:0;pointer-events:none;-webkit-background-clip:text;background-clip:text;color:transparent}
-.brand .dev::before{background:linear-gradient(90deg,#ff4ad8,#ff4ad8);-webkit-background-clip:text;background-clip:text;animation:gl1 7s steps(1) infinite}
-.brand .dev::after{background:linear-gradient(90deg,#46c8ff,#46c8ff);-webkit-background-clip:text;background-clip:text;animation:gl2 7s steps(1) infinite}
-@keyframes gl1{0%,93%,100%{opacity:0;transform:none}94%{opacity:.55;transform:translate(-3px,0)}96%{opacity:.4;transform:translate(2px,1px)}98%{opacity:0}}
-@keyframes gl2{0%,93%,100%{opacity:0;transform:none}95%{opacity:.5;transform:translate(3px,0)}97%{opacity:.35;transform:translate(-2px,-1px)}99%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.brand .dev::before,.brand .dev::after{animation:none}}
+.note{margin:6px 6px 0;text-align:center;color:#8379ad;font-size:14px}
+
+/* settings */
+#gear{position:fixed;right:16px;bottom:16px;z-index:5;width:48px;height:48px;border-radius:50%;border:1px solid rgba(76,201,255,.5);background:rgba(12,7,34,.8);backdrop-filter:blur(10px);font-size:22px;color:var(--blue);transition:.18s}
+#gear:hover{box-shadow:0 0 22px rgba(76,201,255,.45);transform:rotate(30deg)}
+#panel{display:none;position:fixed;right:16px;bottom:76px;z-index:6;width:min(340px,calc(100vw - 32px));max-height:calc(100vh - 100px);overflow:auto}
+#panel .in{padding:16px 18px 18px}
+#panel label{display:flex;justify-content:space-between;margin:12px 0 2px;color:var(--mut);font-size:15px}
+#panel input[type=range]{width:100%;accent-color:var(--violet)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.pbtn{flex:1;height:40px;padding:0 12px;border-radius:9px;border:1px solid rgba(139,92,246,.5);background:rgba(20,12,52,.6);font:700 14px var(--ui)}
+.pbtn.main{background:linear-gradient(135deg,var(--violet2),#3f7bff);border-color:transparent}
+.pbtn:hover{border-color:var(--blue)}
+.row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--mut);font-size:15px}
+.row input{width:20px;height:20px;accent-color:var(--violet)}
+
+#lock{display:none;position:fixed;inset:0;z-index:20;place-items:center;background:rgba(3,1,10,.88);backdrop-filter:blur(8px);padding:20px}
+#lock .sys{width:min(360px,100%);margin:0}
+#lock h1{margin:0 0 12px;font:800 20px var(--disp);letter-spacing:.2em}
+#lock input{width:100%;height:50px;padding:0 16px;border-radius:10px;border:1px solid rgba(139,92,246,.5);background:rgba(4,2,14,.8);color:var(--text);font:600 18px var(--ui);outline:none}
+#lock input:focus{border-color:var(--blue)}
+
+@media (max-width:560px){
+  .sys>.in{padding:14px 14px 16px}
+  #url{height:54px;font-size:18px;padding-right:100px}
+  .qlab{width:100%}
+  .ghost{flex:1 1 100%}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<div id="bg"><video id="bgv" muted loop playsinline autoplay></video><div id="shade"></div><i class="aur a1"></i><i class="aur a2"></i><i class="aur a3"></i><canvas id="fx"></canvas></div>
+<div id="bg" aria-hidden="true">
+  <div class="sky"></div><i class="moon"></i><i class="aura a1"></i><i class="aura a2"></i>
+  <svg class="city" viewBox="0 0 1600 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><path d="M-20,520 L-20,262 L0,262 L0,240 L22,240 L22,262 L37,262 L37,240 L59,240 L59,262 L74,262 L74,240 L96,240 L96,262 L111,262 L111,240 L133,240 L133,262 L148,262 L148,240 L170,240 L170,262 L185,262 L185,240 L207,240 L207,262 L222,262 L222,240 L244,240 L244,262 L259,262 L259,240 L281,240 L281,262 L300,262 L300,230 L300,230 L312,160 L312,160 L312,134 L334,134 L334,160 L346,160 L346,134 L368,134 L368,160 L372,160 L372,300 L372,300 L420,310 L446,360 L500,372 L540,420 L610,430 L660,470 L760,480 L820,505 L900,520 Z"/><path d="M70,262 L70,150 L60,150 L110,24 L160,150 L150,150 L150,262 Z"/><path d="M190,262 L190,190 L182,190 L215,96 L248,190 L240,190 L240,262 Z"/><path d="M1020,520 L1020,229 L1036,247 L1052,209 L1068,210 L1084,254 L1084,520 Z"/><path d="M1078,520 L1078,122 L1105,78 L1133,81 L1161,117 L1161,520 Z"/><path d="M1149,520 L1149,206 L1167,170 L1185,196 L1204,210 L1204,520 Z"/><path d="M1190,520 L1190,28 L1210,32 L1230,15 L1250,40 L1271,27 L1271,520 Z"/><path d="M1256,520 L1256,170 L1280,139 L1304,122 L1328,165 L1328,520 Z"/><path d="M1316,520 L1316,80 L1335,83 L1355,75 L1374,69 L1394,79 L1394,520 Z"/><path d="M1377,520 L1377,205 L1403,212 L1429,195 L1455,223 L1455,520 Z"/><path d="M1445,520 L1445,104 L1469,118 L1493,112 L1518,110 L1518,520 Z"/><path d="M1502,520 L1502,195 L1513,196 L1524,166 L1535,167 L1546,190 L1558,182 L1558,520 Z"/><path d="M-20,520 L0,479 L40,498 L80,499 L120,477 L160,478 L200,491 L240,480 L280,482 L320,479 L360,474 L400,486 L440,491 L480,478 L520,488 L560,479 L600,489 L640,500 L680,486 L720,489 L760,495 L800,481 L840,497 L880,485 L920,499 L960,494 L1000,476 L1040,491 L1080,496 L1120,477 L1160,493 L1200,488 L1240,488 L1280,485 L1320,498 L1360,495 L1400,486 L1440,488 L1480,483 L1520,492 L1560,496 L1600,474 L1640,487 L1640,520 Z"/><path class="rim" d="M-20,520 L-20,262 L0,262 L0,240 L22,240 L22,262 L37,262 L37,240 L59,240 L59,262 L74,262 L74,240 L96,240 L96,262 L111,262 L111,240 L133,240 L133,262 L148,262 L148,240 L170,240 L170,262 L185,262 L185,240 L207,240 L207,262 L222,262 L222,240 L244,240 L244,262 L259,262 L259,240 L281,240 L281,262 L300,262 L300,230 L300,230 L312,160 L312,160 L312,134 L334,134 L334,160 L346,160 L346,134 L368,134 L368,160 L372,160 L372,300 L372,300 L420,310 L446,360 L500,372 L540,420 L610,430 L660,470 L760,480 L820,505 L900,520 Z"/><path class="rim" d="M70,262 L70,150 L60,150 L110,24 L160,150 L150,150 L150,262 Z"/><circle class="win" cx="105" cy="170" r="2.4" style="animation-delay:-4s"/><circle class="win" cx="112" cy="205" r="2.4" style="animation-delay:-2s"/><circle class="win" cx="208" cy="214" r="2.4" style="animation-delay:-5s"/><circle class="win" cx="218" cy="236" r="2.4" style="animation-delay:-3s"/><circle class="win" cx="330" cy="215" r="2.4" style="animation-delay:-2s"/><circle class="win" cx="343" cy="248" r="2.4" style="animation-delay:-5s"/><circle class="win" cx="36" cy="300" r="2.4" style="animation-delay:-3s"/><circle class="win" cx="220" cy="330" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1053" cy="429" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1096" cy="273" r="2.4" style="animation-delay:-0s"/><circle class="win" cx="1099" cy="432" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1162" cy="377" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1184" cy="242" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1173" cy="241" r="2.4" style="animation-delay:-5s"/><circle class="win" cx="1219" cy="366" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1252" cy="429" r="2.4" style="animation-delay:-0s"/><circle class="win" cx="1211" cy="132" r="2.4" style="animation-delay:-3s"/><circle class="win" cx="1270" cy="478" r="2.4" style="animation-delay:-4s"/><circle class="win" cx="1269" cy="295" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1297" cy="462" r="2.4" style="animation-delay:-2s"/><circle class="win" cx="1376" cy="212" r="2.4" style="animation-delay:-2s"/><circle class="win" cx="1443" cy="337" r="2.4" style="animation-delay:-0s"/><circle class="win" cx="1433" cy="364" r="2.4" style="animation-delay:-1s"/><circle class="win" cx="1464" cy="410" r="2.4" style="animation-delay:-3s"/><circle class="win" cx="1481" cy="180" r="2.4" style="animation-delay:-4s"/><circle class="win" cx="1543" cy="453" r="2.4" style="animation-delay:-2s"/><circle class="win" cx="1516" cy="267" r="2.4" style="animation-delay:-4s"/><circle class="win" cx="1529" cy="462" r="2.4" style="animation-delay:-4s"/></svg>
+  <i class="eye" style="left:3%;bottom:15%"></i><i class="eye" style="left:5.4%;bottom:15%;animation-delay:-2s"></i>
+  <i class="eye" style="left:9%;bottom:11%;animation-delay:-4s"></i><i class="eye" style="left:11.5%;bottom:11.2%;animation-delay:-1s"></i>
+  <i class="eye" style="left:15%;bottom:17%;animation-delay:-5s"></i>
+  <div class="fog"></div>
+  <div id="usr"><video id="bgv" muted loop playsinline autoplay></video><div id="bgi"></div></div>
+  <canvas id="fx"></canvas><div id="shade"></div><div class="vig"></div>
+</div>
+
 <main>
-  <header class="top rv" style="--i:0">
-    <h1 class="brand" aria-label="ERROR HUB DOWNLODER"><span class="dev" data-t="ERROR HUB">ERROR HUB</span><span class="ang">DOWNLODER</span></h1>
-  <div class="social">
-    <a class="discord" href="https://discord.gg/ugwfaHSH3" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord server">
-      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
-      <span>Join our Discord</span>
-    </a>
-    <a class="discord facebook" href="https://www.facebook.com/share/14sZEydEd2W/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook">
-      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>
-      <span>Follow on Facebook</span>
-    </a>
+  <header class="top">
+    <h1 class="brand" aria-label="ERROR HUB DOWNLODER"><span class="a">ERROR HUB</span><span class="b">DOWNLODER</span></h1>
+    <div class="social">
+      <a href="https://discord.gg/ugwfaHSH3" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord server"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg><span>Discord</span></a>
+      <a href="https://www.facebook.com/share/14sZEydEd2W/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg><span>Facebook</span></a>
     </div>
   </header>
-  <p class="sub rv" style="--i:1">Paste any video link. The video plays below, and you can download it.</p>
-  <section class="glass rv" id="card" style="--i:2">
-  <div class="box">
+  <p class="tag-line">Paste a video link. Watch it, then save it.</p>
+
+  <section class="sys" id="card"><div class="in">
+    <div class="bar" id="bar" aria-hidden="true"><i></i></div>
+    <p class="cap">Download</p>
     <div class="field">
       <input id="url" type="url" placeholder="Paste video link here" autocomplete="off" aria-label="Video link">
-      <button class="pst" id="pst" type="button" aria-label="Paste from clipboard">Paste</button>
-      <button class="x" id="clr" aria-label="Clear link">✕</button>
+      <button class="pst" id="pst" type="button" aria-label="Paste from clipboard">PASTE</button>
+      <button class="x" id="clr" type="button" aria-label="Clear link">✕</button>
     </div>
-    <button class="go" id="go">Get Video</button>
-  </div>
-  <p class="hint">Facebook, Instagram, TikTok, Twitter and 18+ content download</p>
-  <p class="hint hint2">18+ content · limited website video download</p>
-  <button class="pbtn main" id="install" type="button" style="display:none;flex:none;margin-top:12px;padding:11px 18px;font-size:18px">📲 Install as App</button>
-  <input id="file" type="file" accept="video/*,.mkv,.mov,.m4v,.3gp" hidden>
-  <div class="bar" id="bar" aria-hidden="true"><i></i></div>
-  </section>
+    <div class="qrow" id="qrow" role="radiogroup" aria-label="Video quality"><span class="qlab">QUALITY</span></div>
+    <p class="qnote">Never upscaled. If that quality does not exist, you get the closest lower one.</p>
+    <button class="go" id="go" type="button">Get Video</button>
+    <p class="hint">YouTube · Facebook · Instagram · TikTok · X (Twitter) · 18+ sites and more</p>
+    <input id="file" type="file" accept="video/*,image/*,.mkv,.mov,.m4v,.3gp,.webp,.avif" hidden>
+  </div></section>
   <div id="msg" role="status"></div>
-  <section id="res" class="glass">
+
+  <section class="sys" id="res"><div class="in">
+    <p class="cap">Ready</p>
     <video id="vid" controls playsinline></video>
-    <div class="info">
-      <h2 id="ttl"></h2>
-      <a class="dl" id="dl" href="#">Download</a>
-      <button class="close" id="cls">Close Video</button>
-      <span class="size" id="sz"></span>
-      <div class="alts" id="alts"></div>
+    <h2 id="ttl"></h2>
+    <div class="meta" id="meta"></div>
+    <p class="low" id="low"></p>
+    <div class="acts">
+      <a class="dl" id="dl" href="#" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg><span>Download</span></a>
+      <button class="ghost" id="cls" type="button">Close</button>
     </div>
-  </section>
-  <p class="note rv" style="--i:4"><span id="rule">Only download videos you own or have permission to save.</span> Videos are deleted from the server after a short time.<span id="contact"></span></p>
-  <p class="note rv" style="--i:5">YouTube and all other sites are supported.</p>
+    <div class="alts" id="alts"></div>
+  </div></section>
+
+  <p class="note"><span id="rule">Only download videos you own or have permission to save.</span> Videos are deleted after a short time.<span id="contact"></span></p>
+  <p class="note" id="statsnote" style="display:none">Anonymous usage counts (site name only, never your links or personal data) are sent to the app owner.</p>
 </main>
 
-<button id="gear" aria-label="Background settings" aria-expanded="false">⚙</button>
-<div id="panel" role="dialog" aria-label="Background settings">
-  <h3>Background</h3>
-  <div class="btns"><button class="pbtn main" id="bgpick" type="button">Add background video</button><button class="pbtn" id="bgrm" type="button">Remove</button></div>
-  <label for="vop"><span>Video transparency</span><span id="vov">100%</span></label>
+<button id="gear" type="button" aria-label="Settings" aria-expanded="false">⚙</button>
+<div id="panel" class="sys" role="dialog" aria-label="Settings"><div class="in">
+  <p class="cap">Settings</p>
+  <div class="btns"><button class="pbtn main" id="bgpick" type="button">Add background</button><button class="pbtn" id="bgrm" type="button">Remove</button></div>
+  <label for="vop"><span>Background opacity</span><span id="vov">100%</span></label>
   <input id="vop" type="range" min="10" max="100" step="5" value="100">
   <label for="blur"><span>Blur</span><span id="blv">0</span></label>
   <input id="blur" type="range" min="0" max="24" step="1" value="0">
-  <label for="gl"><span>Panel frost (0 = clear)</span><span id="glv">0</span></label>
-  <input id="gl" type="range" min="0" max="100" step="5" value="0">
   <label for="dim"><span>Darkness</span><span id="dmv">0</span></label>
-  <input id="dim" type="range" min="0" max="80" step="5" value="0">
-  <div class="row"><span>Video sound</span><input id="snd" type="checkbox" style="accent-color:var(--b);width:20px;height:20px"></div>
-  <div class="row"><span>Auto colour change (RGB)</span><input id="rgb" type="checkbox" checked style="accent-color:var(--b);width:20px;height:20px"></div>
-  <div class="row"><span>Floating embers</span><input id="emb" type="checkbox" checked style="accent-color:var(--b);width:20px;height:20px"></div>
-  <div class="btns" style="margin-top:14px"><button class="pbtn" id="norm" type="button">Normal (reset)</button></div>
-</div>
-
-<div id="lock"><div>
-  <h1>Password</h1>
-  <input id="pw" type="password" placeholder="Enter password" style="padding-right:16px">
-  <p id="lerr" style="color:#ff7a8a;min-height:22px"></p>
-  <button class="go" id="lgo" style="width:100%">Enter</button>
+  <input id="dim" type="range" min="0" max="80" step="5" value="20">
+  <div class="row"><span>Background video sound</span><input id="snd" type="checkbox"></div>
+  <div class="row"><span>Floating shadow sparks</span><input id="emb" type="checkbox" checked></div>
+  <div class="btns" style="margin-top:14px"><button class="pbtn" id="norm" type="button">Reset</button></div>
 </div></div>
+
+<div id="lock"><div class="sys"><div class="in">
+  <h1>PASSWORD</h1>
+  <input id="pw" type="password" placeholder="Enter password" autocomplete="current-password">
+  <p id="lerr" style="color:#ff8aa8;min-height:22px;margin:8px 0"></p>
+  <button class="go" id="lgo" type="button" style="margin-top:0">Enter</button>
+</div></div></div>
+
 <script>
 const $=id=>document.getElementById(id);
-const url=$('url'),msg=$('msg'),go=$('go'),clr=$('clr'),vid=$('vid');
+const url=$('url'),msg=$('msg'),go=$('go'),clr=$('clr'),vid=$('vid'),pst=$('pst');
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let timer=null;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* the old "install as app" service worker is not needed any more: remove it if an earlier version left one */
+if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
+if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});}
 
 function say(t,err,spin){msg.className=err?'err':'';msg.textContent='';if(spin){const s=document.createElement('span');s.className='spin';msg.appendChild(s)}msg.appendChild(document.createTextNode(t||''))}
-const pst=$('pst');
 function sync(){const has=!!url.value;clr.style.display=has?'block':'none';pst.style.display=has?'none':'block'}
 url.addEventListener('input',()=>{sync();store.set('evdUrl',url.value)});sync();
 clr.onclick=()=>{setUrl('');say('');url.focus()};
@@ -307,47 +280,45 @@ pst.onclick=async()=>{
     if(t){setUrl(t);say('');url.focus()}else{say('Clipboard is empty. Copy a video link first.',true)}
   }catch(e){
     url.focus();
-    say('Chrome blocked clipboard access. Tap the box, press and hold, then choose Paste. (Or allow Clipboard in the site settings.)',true);
+    say('The browser blocked clipboard access. Click the box and press Ctrl+V (or press and hold, then Paste).',true);
   }
 };
 url.addEventListener('paste',()=>setTimeout(()=>{const t=cleanUrl(url.value);if(t!==url.value)setUrl(t);else sync()},0));
+
+/* ---- quality chips ---- */
+const QS=[['best','Best'],['1080','1080p'],['720','720p'],['480','480p'],['360','360p'],['240','240p'],['144','144p'],['audio','MP3']];
+let quality=store.get('evdQ','1080');if(!QS.some(q=>q[0]===quality))quality='1080';
+function drawChips(){
+  document.querySelectorAll('#qrow .chip').forEach(b=>b.setAttribute('aria-checked',b.dataset.q===quality));
+}
+QS.forEach(([v,l])=>{const b=document.createElement('button');b.type='button';b.className='chip';b.dataset.q=v;b.textContent=l;b.setAttribute('role','radio');
+  b.onclick=()=>{quality=v;store.set('evdQ',v);drawChips()};$('qrow').appendChild(b)});
+drawChips();
 
 function closeVideo(){
   vid.pause();vid.removeAttribute('src');vid.removeAttribute('poster');vid.load();
   $('res').style.display='none';
 }
 $('cls').onclick=()=>{closeVideo();say('');store.set('evdLast','')};
-
 vid.addEventListener('error',()=>{
   if(!vid.getAttribute('src'))return;
-  say("The browser can't play this format. Use the Download button instead.",true);
+  say("The player can't show this format. Use the Download button instead.",true);
 });
-
-/* ---- advanced UI: cursor spotlight on glass cards, button ripple ---- */
-document.querySelectorAll('.glass').forEach(g=>g.addEventListener('pointermove',e=>{const r=g.getBoundingClientRect();g.style.setProperty('--mx',(e.clientX-r.left)+'px');g.style.setProperty('--my',(e.clientY-r.top)+'px')}));
-document.addEventListener('pointerdown',e=>{
-  const b=e.target.closest('button.go,.dl,.discord');if(!b||b.disabled)return;
-  const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,i=document.createElement('span');
-  i.className='rip';i.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';
-  b.appendChild(i);setTimeout(()=>i.remove(),650);
-});
-
-/* ---- block selecting / copying page text (input boxes and the video player still work normally) ---- */
-(function(){
-  const ok=t=>t&&t.closest&&t.closest('input,textarea,video');
-  ['copy','cut','selectstart','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!ok(e.target))e.preventDefault()}));
-  document.addEventListener('contextmenu',e=>{if(!ok(e.target))e.preventDefault()});
-  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['c','x','a','u','s'].includes(e.key.toLowerCase())&&!ok(document.activeElement)){e.preventDefault()}});
-})();
-
-/* keep-alive signal for the desktop app (harmless on the web) */
 setInterval(()=>{fetch('/api/ping',{cache:'no-store'}).catch(()=>{})},15000);
 
 /* ---- link downloader ---- */
+function fmtDur(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
 function showRes(d){
-  vid.src='/media/'+d.id; if(d.thumbnail) vid.poster=d.thumbnail;
-  $('ttl').textContent=d.title; $('dl').style.display=''; $('dl').href='/media/'+d.id+'?dl=1';
-  $('sz').textContent=(d.size/1048576).toFixed(1)+' MB';
+  vid.src='/media/'+d.id; if(d.thumbnail&&!d.audio) vid.poster=d.thumbnail;
+  $('ttl').textContent=d.title; $('dl').href='/media/'+d.id+'?dl=1';
+  const meta=$('meta');meta.textContent='';
+  const add=(t,c)=>{const s=document.createElement('span');s.className='tag '+(c||'');s.textContent=t;meta.appendChild(s)};
+  if(d.audio)add('AUDIO','a');else if(d.height)add(d.height+'p','q');
+  if(d.ext)add(String(d.ext).toUpperCase());
+  add((d.size/1048576).toFixed(1)+' MB');
+  if(typeof d.duration==='number'&&d.duration>0)add(fmtDur(d.duration));
+  const asked=+d.asked;
+  $('low').textContent=(!d.audio&&asked&&d.height&&d.height<asked*0.9)?asked+'p is not available for this video. Got '+d.height+'p, the closest lower quality.':'';
   $('res').style.display='block';
   const box=$('alts');box.textContent='';
   if(d.others&&d.others.length){
@@ -360,14 +331,14 @@ function showRes(d){
     });
   }else box.style.display='none';
 }
+function remember(d){store.set('evdLast',JSON.stringify({id:d.id,title:d.title,thumbnail:d.thumbnail,size:d.size,others:d.others,height:d.height,ext:d.ext,audio:d.audio,asked:d.asked,duration:d.duration,t:Date.now()}))}
 async function pickAlt(id,n){
   closeVideo();go.disabled=true;$('bar').classList.add('on');say('Getting that video…',false,true);
   try{
     const r=await fetch('/api/alt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,n})});
     let d={};try{d=await r.json()}catch(e){throw new Error('Something went wrong')}
     if(!r.ok)throw new Error(d.error||'Something went wrong');
-    showRes(d);say('');
-    store.set('evdLast',JSON.stringify({id:d.id,title:d.title,thumbnail:d.thumbnail,size:d.size,others:d.others,t:Date.now()}));
+    showRes(d);say('');remember(d);
     $('res').scrollIntoView({behavior:'smooth'});
   }catch(e){say(e.message,true)}
   finally{go.disabled=false;$('bar').classList.remove('on')}
@@ -379,12 +350,11 @@ async function run(){
   let sec=0; const tick=()=>say('Getting the video… '+sec+'s (big videos can take a while)',false,true);
   tick(); timer=setInterval(()=>{sec++;tick()},1000);
   try{
-    const r=await fetch('/api/fetch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u})});
+    const r=await fetch('/api/fetch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u,quality})});
     if(r.status===401){$('lock').style.display='grid';say('');return}
-    let d={}; try{d=await r.json()}catch(e){throw new Error(r.status===502||r.status===504?'The server is waking up or busy. Wait 30 seconds and try again.':'Something went wrong')}
+    let d={}; try{d=await r.json()}catch(e){throw new Error(r.status===502||r.status===504?'The server is waking up or busy. Wait 30 seconds and try again.':'Server error ('+r.status+'). Try again.')}
     if(!r.ok) throw new Error(d.error||'Something went wrong');
-    showRes(d); say('');
-    store.set('evdLast',JSON.stringify({id:d.id,title:d.title,thumbnail:d.thumbnail,size:d.size,others:d.others,t:Date.now()}));
+    showRes(d); say(''); remember(d);
     $('res').scrollIntoView({behavior:'smooth'});
   }catch(e){say(e.message,true)}
   finally{clearInterval(timer);go.disabled=false;$('bar').classList.remove('on')}
@@ -397,218 +367,87 @@ async function login(){
 $('lgo').onclick=login; $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 fetch('/api/status').then(r=>r.json()).then(s=>{
   if(s.need&&!s.ok)$('lock').style.display='grid';
-  
+  if(s.stats)$('statsnote').style.display='';
   if(s.contact){const a=document.createElement('a');a.href='mailto:'+s.contact;a.textContent=s.contact;$('contact').append(' Contact / removal requests: ',a)}
 }).catch(()=>{});
 
-/* ---- background: blur slider, darkness, floating embers ---- */
-const bg=$('bg'),fx=$('fx'),cx=fx.getContext('2d');
-const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
-const bgv=$('bgv');
+/* ---- background: your own photo or video (kept in this browser only, nothing is uploaded) ---- */
+const bgv=$('bgv'),bgi=$('bgi'),usr=$('usr');
 function applyBg(){
-  const b=+$('blur').value,d=+$('dim').value,o=+$('vop').value,g=+$('gl').value;
-  $('glv').textContent=g+'%';document.documentElement.style.setProperty('--gl',g/100);document.documentElement.classList.toggle('glassoff',g<5);store.set('bgGl',g);
+  const b=+$('blur').value,d=+$('dim').value,o=+$('vop').value;
   $('blv').textContent=b+'px';$('dmv').textContent=d+'%';$('vov').textContent=o+'%';
-  bgv.style.opacity=o/100;$('shade').style.opacity=d/100;
-  bg.style.setProperty('--bf',b?'blur('+b+'px)':'none');
-  bg.classList.toggle('blur',b>0);
+  usr.style.filter=b?'blur('+b+'px)':'';usr.style.opacity=o/100;$('shade').style.opacity=d/100;
   store.set('bgBlur',b);store.set('bgDim2',d);store.set('bgOp',o);
 }
-$('blur').value=store.get('bgBlur',0);$('dim').value=store.get('bgDim2',20);$('vop').value=store.get('bgOp',100);$('gl').value=store.get('bgGl',0);
-$('emb').checked=store.get('bgEmb',reduce?'0':'1')==='1';
-$('blur').oninput=$('dim').oninput=$('vop').oninput=$('gl').oninput=applyBg;
-$('norm').onclick=()=>{$('blur').value=0;$('dim').value=20;$('vop').value=100;$('gl').value=0;applyBg()};
-
-/* background video: picked from your device, kept in the browser (IndexedDB) so it stays after reload. Nothing is uploaded. */
+$('blur').value=store.get('bgBlur',0);$('dim').value=store.get('bgDim2',20);$('vop').value=store.get('bgOp',100);
+$('emb').checked=store.get('bgFx',reduce?'0':'1')==='1';
+$('blur').oninput=$('dim').oninput=$('vop').oninput=applyBg;applyBg();
+$('norm').onclick=()=>{$('blur').value=0;$('dim').value=20;$('vop').value=100;applyBg()};
 const idb={db:null,
-  open(){return new Promise(res=>{try{const r=indexedDB.open('devilbg',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>{this.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
+  open(){return new Promise(res=>{try{const r=indexedDB.open('errorhubbg',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>{this.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
   put(f){return new Promise(res=>{if(!this.db)return res(false);try{const t=this.db.transaction('f','readwrite');t.objectStore('f').put(f,'bg');t.oncomplete=()=>res(true);t.onerror=t.onabort=()=>res(false)}catch(e){res(false)}})},
   get(){return new Promise(res=>{if(!this.db)return res(null);try{const q=this.db.transaction('f').objectStore('f').get('bg');q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)}catch(e){res(null)}})},
   del(){return new Promise(res=>{if(!this.db)return res();try{const t=this.db.transaction('f','readwrite');t.objectStore('f').delete('bg');t.oncomplete=()=>res();t.onerror=()=>res()}catch(e){res()}})}};
 let bgUrl=null;
-function setBgVideo(f){
-  if(bgUrl)URL.revokeObjectURL(bgUrl);
-  bgUrl=URL.createObjectURL(f);bgv.src=bgUrl;bgv.style.display='block';bgv.muted=!$('snd').checked;
-  bgv.play().catch(()=>{bgv.muted=true;$('snd').checked=false;bgv.play().catch(()=>{})});
+const isVideoFile=f=>(f.type||'').startsWith('video/')||/\.(mp4|mkv|webm|mov|avi|m4v|3gp|ogv)$/i.test(f.name||'');
+const isImageFile=f=>(f.type||'').startsWith('image/')||/\.(jpe?g|png|webp|gif|avif|bmp)$/i.test(f.name||'');
+function clearBg(){bgv.pause();bgv.removeAttribute('src');bgv.load();bgv.style.display='none';bgi.style.backgroundImage='';bgi.style.display='none';usr.classList.remove('on');if(bgUrl){URL.revokeObjectURL(bgUrl);bgUrl=null}}
+function setBg(f){
+  clearBg();bgUrl=URL.createObjectURL(f);usr.classList.add('on');
+  if(isVideoFile(f)){
+    bgv.src=bgUrl;bgv.style.display='block';bgv.muted=!$('snd').checked;
+    bgv.play().catch(()=>{bgv.muted=true;$('snd').checked=false;bgv.play().catch(()=>{})});
+  }else{bgi.style.backgroundImage='url("'+bgUrl+'")';bgi.style.display='block'}
 }
-function clearBgVideo(){bgv.pause();bgv.removeAttribute('src');bgv.load();bgv.style.display='none';if(bgUrl){URL.revokeObjectURL(bgUrl);bgUrl=null}}
 $('bgpick').onclick=()=>$('file').click();
 $('file').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
-  if(!(f.type||'').startsWith('video/')&&!/\.(mp4|mkv|webm|mov|avi|m4v|3gp|ogv)$/i.test(f.name)){say('That file is not a video.',true);return}
-  setBgVideo(f);const ok=await idb.put(f);
-  say(ok?'':'Background video is on, but this browser cannot keep it after you close the page.',!ok);
+  if(!isVideoFile(f)&&!isImageFile(f)){say('Pick a photo or a video file.',true);return}
+  setBg(f);const ok=await idb.put(f);
+  say(ok?'':'The background is on, but this browser cannot keep it after you close the page.',!ok);
 };
-$('bgrm').onclick=async()=>{clearBgVideo();await idb.del()};
+$('bgrm').onclick=async()=>{clearBg();await idb.del()};
 $('snd').onchange=()=>{bgv.muted=!$('snd').checked;if(!bgv.muted)bgv.play().catch(()=>{})};
-bgv.addEventListener('error',()=>{if(bgv.getAttribute('src')){clearBgVideo();say("This video format can't be used as background. Try an MP4.",true)}});
-idb.open().then(async ok=>{if(ok){const f=await idb.get();if(f)setBgVideo(f)}});
-$('emb').onchange=()=>{store.set('bgEmb',$('emb').checked?'1':'0');$('emb').checked?startFx():stopFx()};
+bgv.addEventListener('error',()=>{if(bgv.getAttribute('src')){clearBg();say("This video format can't be used as a background. Try an MP4.",true)}});
+idb.open().then(async ok=>{if(ok){const f=await idb.get();if(f)setBg(f)}});
+
 function panelShow(on){$('panel').style.display=on?'block':'none';$('gear').setAttribute('aria-expanded',on)}
 $('gear').onclick=()=>panelShow($('panel').style.display!=='block');
 document.addEventListener('pointerdown',e=>{if($('panel').style.display==='block'&&!e.target.closest('#panel,#gear'))panelShow(false)});
 addEventListener('keydown',e=>{if(e.key==='Escape')panelShow(false)});
-applyBg();
 
-/* ---- slow automatic colour change (all colours drift around the colour wheel) ---- */
-let hueT=+store.get('hueT',0),hueTimer=0,hue=0;
-const root=document.documentElement,themeMeta=document.querySelector('meta[name=theme-color]');
-const HUE_PERIOD=100; /* seconds for one trip around ALL colours */
-function setHue(){root.style.setProperty('--h',hue.toFixed(2));themeMeta.content='hsl('+((340+hue+360)%360).toFixed(0)+',55%,5%)'}
-/* all colours, one tiny step per second; the colours themselves are kept soft and dark so they never glare */
-function stepHue(){hueT+=1;hue=(hueT*360/HUE_PERIOD)%360;setHue()}
-function startHue(){stopHue();hueTimer=setInterval(()=>{if(!vid.paused&&!vid.ended)return;stepHue()},1000)}
-function stopHue(){clearInterval(hueTimer);hueTimer=0;store.set('hueT',hueT)}
-$('rgb').checked=store.get('bgRgb',reduce?'0':'1')==='1';
-$('rgb').onchange=()=>{store.set('bgRgb',$('rgb').checked?'1':'0');$('rgb').checked?startHue():stopHue()};
-stepHue();if($('rgb').checked)startHue();
-addEventListener('pagehide',()=>store.set('hueT',hueT));
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(hueTimer){clearInterval(hueTimer);hueTimer=0}}else if($('rgb').checked&&!hueTimer)startHue()});
-
-/* ---- install as an app (Chrome on phone and PC) ---- */
-let deferred=null;
-addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').style.display='inline-block'});
-$('install').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('install').style.display='none'};
-addEventListener('appinstalled',()=>{$('install').style.display='none'});
-if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
-
-let W=0,H=0,D=1,P=[],raf=0;
-const MAXP=420;
-function size(){D=Math.min(devicePixelRatio||1,2);W=fx.width=innerWidth*D;H=fx.height=innerHeight*D}
-/* floating sparkles rise from the bottom; every particle keeps its own colour offset, so the whole sky follows the colour drift */
-function mk0(init){return{x:Math.random()*W,y:init?Math.random()*H:H+10*D,vx:0,vy:-(Math.random()*1.1+.45)*D,r:(Math.random()*2.4+.8)*D,s:Math.random()*6.283,w:Math.random()*.04+.01,a:Math.random()*.45+.2,o:Math.random()*110-35,tw:Math.random()*6.283,life:-1,star:Math.random()>.9}}
-function mk(init){const o=mk0(init);o.bv=o.vy;return o}
-/* tentacle web: neighbours pull each other, joined by glowing, wavy, colourful lines; every spark leaves a comet tail */
-let T=0;
-const LINK=150,MAXLINK=3;
-let RINGS=[],BOLTS=[],METEORS=[],BOKEH=[];
-const hz=o=>(((hue+o)%360)+360)%360;
-function mkBokeh(init){return{x:Math.random()*W,y:init?Math.random()*H:H+90*D,r:(Math.random()*55+30)*D,v:(Math.random()*.25+.1)*D,o:Math.random()*160-40,a:Math.random()*.06+.035,s:Math.random()*6.28}}
-function addRing(x,y){if(RINGS.length<10)RINGS.push({x:x*D,y:y*D,r:6*D,a:.6,o:Math.random()*80})}
-function addBolts(x,y,n){
-  for(let b=0;b<n&&BOLTS.length<14;b++){
-    const ang=Math.random()*6.283,len=(90+Math.random()*130)*D,seg=8,pts=[[x*D,y*D]];
-    for(let i=1;i<=seg;i++){const t=i/seg,j=(1-t*.4)*16*D;pts.push([x*D+Math.cos(ang)*len*t+(Math.random()-.5)*2*j,y*D+Math.sin(ang)*len*t+(Math.random()-.5)*2*j])}
-    BOLTS.push({pts,life:1,o:Math.random()*90-10});
-  }
-}
-function addMeteor(){if(METEORS.length<2)METEORS.push({x:(Math.random()*.7+.3)*W,y:-30*D,vx:-(5+Math.random()*4)*D,vy:(3+Math.random()*3)*D,o:Math.random()*120-20,life:1})}
-function drawExtras(){
-  /* big soft bokeh orbs drifting up (behind everything) */
-  for(const b of BOKEH){
-    b.y-=b.v;b.s+=.004;b.x+=Math.sin(b.s)*.25*D;if(b.y<-b.r*1.5)Object.assign(b,mkBokeh(false));
-    const g=cx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r),h=hz(b.o);
-    g.addColorStop(0,'hsla('+h+',80%,62%,'+b.a+')');g.addColorStop(1,'hsla('+h+',80%,62%,0)');
-    cx.fillStyle=g;cx.beginPath();cx.arc(b.x,b.y,b.r,0,6.283);cx.fill();
-  }
-  /* shooting stars */
-  if(Math.random()<.004)addMeteor();
-  for(let i=METEORS.length-1;i>=0;i--){
-    const m=METEORS[i];m.x+=m.vx;m.y+=m.vy;
-    if(m.y>H+40*D||m.x<-60*D){METEORS.splice(i,1);continue}
-    const L=150*D,sp=Math.hypot(m.vx,m.vy),tx=m.x-m.vx/sp*L,ty=m.y-m.vy/sp*L,h=hz(m.o);
-    const g=cx.createLinearGradient(m.x,m.y,tx,ty);g.addColorStop(0,'hsla('+h+',90%,82%,.85)');g.addColorStop(1,'hsla('+h+',90%,60%,0)');
-    cx.strokeStyle=g;cx.lineWidth=2.2*D;cx.beginPath();cx.moveTo(m.x,m.y);cx.lineTo(tx,ty);cx.stroke();
-    glow(m.x,m.y,2.2*D,h,.9,false);
-  }
-  /* shockwave rings from a tap */
-  for(let i=RINGS.length-1;i>=0;i--){
-    const r=RINGS[i];r.r+=7*D;r.a*=.94;if(r.a<.02){RINGS.splice(i,1);continue}
-    const h=hz(r.o);
-    cx.strokeStyle='hsla('+h+',90%,70%,'+r.a*.35+')';cx.lineWidth=7*D;cx.beginPath();cx.arc(r.x,r.y,r.r,0,6.283);cx.stroke();
-    cx.strokeStyle='hsla('+h+',95%,78%,'+r.a+')';cx.lineWidth=1.6*D;cx.beginPath();cx.arc(r.x,r.y,r.r,0,6.283);cx.stroke();
-  }
-  /* little lightning bolts from a tap */
-  for(let i=BOLTS.length-1;i>=0;i--){
-    const b=BOLTS[i];b.life-=.07;if(b.life<=0){BOLTS.splice(i,1);continue}
-    const h=hz(b.o),fl=b.life*(.6+.4*Math.random());
-    cx.beginPath();cx.moveTo(b.pts[0][0],b.pts[0][1]);for(let k=1;k<b.pts.length;k++)cx.lineTo(b.pts[k][0],b.pts[k][1]);
-    cx.lineJoin='round';cx.strokeStyle='hsla('+h+',90%,62%,'+fl*.3+')';cx.lineWidth=6*D;cx.stroke();
-    cx.strokeStyle='hsla('+h+',95%,85%,'+fl+')';cx.lineWidth=1.4*D;cx.stroke();
-  }
-}
-function glow(x,y,r,h,a,star){
-  cx.fillStyle='hsla('+h+',80%,58%,'+(a*.2)+')';cx.beginPath();cx.arc(x,y,r*3.2,0,6.283);cx.fill();
-  cx.fillStyle='hsla('+h+',85%,70%,'+a+')';cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill();
-  if(star){cx.strokeStyle='hsla('+h+',90%,78%,'+(a*.8)+')';cx.lineWidth=D;cx.beginPath();cx.moveTo(x-r*3.5,y);cx.lineTo(x+r*3.5,y);cx.moveTo(x,y-r*3.5);cx.lineTo(x,y+r*3.5);cx.stroke()}
-}
-function tail(p,h,a){
-  const sp=Math.hypot(p.vx,p.vy);if(sp<.2)return;
-  const L=Math.min(46*D,sp*14),ux=-p.vx/sp,uy=-p.vy/sp;
-  for(let i=0;i<3;i++){
-    cx.strokeStyle='hsla('+h+',90%,66%,'+(a*.55*(1-i/3))+')';cx.lineWidth=Math.max(.6,p.r*(1.1-i*.3));
-    cx.beginPath();cx.moveTo(p.x+ux*L*i/3,p.y+uy*L*i/3);cx.lineTo(p.x+ux*L*(i+1)/3,p.y+uy*L*(i+1)/3);cx.stroke();
-  }
-}
-function frame(){
-  cx.clearRect(0,0,W,H);cx.globalCompositeOperation='lighter';T++;
-  drawExtras();
-  const R=LINK*D,R2=R*R;
-  /* 1) move */
-  for(let i=P.length-1;i>=0;i--){
-    const p=P[i];
-    if(p.life>=0){ /* spark from a touch */
-      p.life-=.018;if(p.life<=0){P.splice(i,1);continue}
-      p.vx*=.955;p.vy=p.vy*.955-.012*D;p.x+=p.vx;p.y+=p.vy;p.f=Math.min(1,p.life*1.6);
-    }else{
-      p.s+=p.w;p.vx*=.96;p.vy+=(p.bv-p.vy)*.03;p.x+=p.vx+Math.sin(p.s)*.5*D;p.y+=p.vy;
-      if(p.y<-20*D)Object.assign(p,mk(false));
-      p.f=Math.max(0,Math.min(1,p.y/(H*.3)));
-    }
-    p.l=0;p.tw+=.07;
-  }
-  /* 2) find neighbours with a grid, pull them together, draw the tentacle between them */
-  const grid=new Map();
-  for(let i=0;i<P.length;i++){P[i].i=i;const k=((P[i].x/R)|0)+','+((P[i].y/R)|0);const c=grid.get(k);c?c.push(P[i]):grid.set(k,[P[i]])}
-  let drawn=0;
-  for(const p of P){
-    if(p.l>=MAXLINK||p.f<.05)continue;
-    const gx=(p.x/R)|0,gy=(p.y/R)|0;
-    for(let ox=-1;ox<=1&&p.l<MAXLINK;ox++)for(let oy=-1;oy<=1&&p.l<MAXLINK;oy++){
-      const c=grid.get((gx+ox)+','+(gy+oy));if(!c)continue;
-      for(const q of c){
-        if(q.i<=p.i||q.l>=MAXLINK||q.f<.05)continue;
-        const dx=q.x-p.x,dy=q.y-p.y,d2=dx*dx+dy*dy;if(d2>R2||d2<4)continue;
-        const d=Math.sqrt(d2),k=1-d/R,pull=k*.035*D;
-        p.vx+=dx/d*pull;q.vx-=dx/d*pull;p.vy+=dy/d*pull*.4;q.vy-=dy/d*pull*.4;  /* they tug at each other */
-        p.l++;q.l++;
-        if(drawn>240)continue;drawn++;
-        const amp=Math.sin(T*.035+p.s+q.s)*d*.2,mx=(p.x+q.x)/2-dy/d*amp,my=(p.y+q.y)/2+dx/d*amp;
-        const h=((hue+(p.o+q.o)/2)%360+360)%360,a=k*Math.min(p.f,q.f)*.6;
-        cx.beginPath();cx.moveTo(p.x,p.y);cx.quadraticCurveTo(mx,my,q.x,q.y);
-        cx.strokeStyle='hsla('+h+',85%,60%,'+(a*.25)+')';cx.lineWidth=3.4*D;cx.stroke();   /* soft glow */
-        cx.strokeStyle='hsla('+h+',90%,72%,'+a+')';cx.lineWidth=1.1*D;cx.stroke();          /* bright core */
-      }
-    }
-  }
-  /* 3) draw the sparks with their tails */
-  for(const p of P){
-    const h=(((hue+p.o)%360)+360)%360,al=p.a*p.f*(.75+.25*Math.sin(p.tw));
-    tail(p,h,al);glow(p.x,p.y,p.r,h,al,p.star);
-  }
+/* ---- shadow sparks: a few slow violet / blue motes (light on the CPU; stops when hidden, when a video plays, or when switched off) ---- */
+const fx=$('fx'),cx=fx.getContext&&fx.getContext('2d');
+let W=0,H=0,D=1,P=[],raf=0,last=0;
+const SPR={};
+function sprite(h,s,l){const k=h+'-'+s+'-'+l;if(SPR[k])return SPR[k];const c=document.createElement('canvas');c.width=c.height=48;const g=c.getContext('2d');
+  const r=g.createRadialGradient(24,24,0,24,24,24);r.addColorStop(0,'hsla('+h+','+s+'%,'+l+'%,1)');r.addColorStop(.25,'hsla('+h+','+s+'%,'+(l-10)+'%,.55)');r.addColorStop(1,'hsla('+h+','+s+'%,'+(l-25)+'%,0)');
+  g.fillStyle=r;g.fillRect(0,0,48,48);return SPR[k]=c}
+const COLS=[[270,90,72],[200,100,68],[290,85,66],[200,100,68],[28,100,62]];
+function mk(init){const c=COLS[Math.floor(Math.random()*COLS.length)];
+  return{x:Math.random()*W,y:init?Math.random()*H:H+20*D,vy:(Math.random()*.55+.18)*D,dx:(Math.random()-.5)*.25*D,r:(Math.random()*9+4)*D,s:Math.random()*6.28,w:Math.random()*.02+.006,a:Math.random()*.5+.25,c}}
+function size(){D=Math.min(devicePixelRatio||1,1.5);W=fx.width=Math.floor(innerWidth*D);H=fx.height=Math.floor(innerHeight*D)}
+function frame(t){
   raf=requestAnimationFrame(frame);
-}
-function burst(x,y,n){
-  if(!raf)return;
-  for(let i=0;i<n&&P.length<MAXP;i++){
-    const ang=Math.random()*6.283,sp=(Math.random()*5+1.5)*D;
-    P.push({x:x*D,y:y*D,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-1.5*D,r:(Math.random()*2.4+1)*D,s:0,w:0,a:Math.random()*.4+.45,o:Math.random()*140-50,tw:Math.random()*6.283,life:Math.random()*.5+.7,star:Math.random()>.8});
+  if(t-last<33)return;last=t;
+  cx.clearRect(0,0,W,H);cx.globalCompositeOperation='lighter';
+  for(const p of P){
+    p.y-=p.vy;p.s+=p.w;p.x+=p.dx+Math.sin(p.s)*.25*D;
+    if(p.y<-30*D){Object.assign(p,mk(false))}
+    cx.globalAlpha=p.a*(.65+.35*Math.sin(p.s*2.3));
+    const sp=sprite(p.c[0],p.c[1],p.c[2]);cx.drawImage(sp,p.x-p.r,p.y-p.r,p.r*2,p.r*2);
   }
+  cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
 }
-let lastB=0;
-addEventListener('pointerdown',e=>{if(!raf)return;burst(e.clientX,e.clientY,28);addRing(e.clientX,e.clientY);addBolts(e.clientX,e.clientY,4)},{passive:true});
-addEventListener('pointermove',e=>{
-  const t=performance.now();if(t-lastB<30)return;lastB=t;
-  burst(e.clientX,e.clientY,e.pointerType==='mouse'&&!e.buttons?2:6); /* finger/mouse drag leaves a bright trail */
-},{passive:true});
-function startFx(){stopFx();size();const n=Math.round(Math.min(120,Math.max(55,innerWidth/11)));P=Array.from({length:n},()=>mk(true));RINGS=[];BOLTS=[];METEORS=[];BOKEH=Array.from({length:innerWidth<600?5:8},()=>mkBokeh(true));frame()}
-function stopFx(){cancelAnimationFrame(raf);raf=0;cx.clearRect(0,0,W,H)}
+function startFx(){stopFx();if(!cx)return;size();const n=innerWidth<600?20:38;P=Array.from({length:n},()=>mk(true));raf=requestAnimationFrame(frame)}
+function stopFx(){cancelAnimationFrame(raf);raf=0;if(cx)cx.clearRect(0,0,W,H)}
+$('emb').onchange=()=>{store.set('bgFx',$('emb').checked?'1':'0');$('emb').checked?startFx():stopFx()};
 addEventListener('resize',()=>{if(raf)startFx()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0}else if($('emb').checked&&!raf)startFx()});
-if($('emb').checked)startFx();
-vid.addEventListener('play',()=>{if(raf)stopFx()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopFx();else if($('emb').checked&&!raf)startFx()});
+vid.addEventListener('play',stopFx);
 vid.addEventListener('pause',()=>{if($('emb').checked&&!raf&&!document.hidden)startFx()});
 vid.addEventListener('ended',()=>{if($('emb').checked&&!raf&&!document.hidden)startFx()});
+if($('emb').checked)startFx();
 
 /* ---- if the page ever reloads by itself, bring back the link and the video ---- */
 (function restore(){

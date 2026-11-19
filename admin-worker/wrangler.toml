@@ -1,0 +1,12 @@
+# Only needed if you deploy with the command line (npx wrangler deploy). The dashboard way needs no file.
+name = "errorhub-stats"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "errorhub"
+database_id = "PASTE-YOUR-D1-ID-HERE"
+
+[vars]
+TZ_OFFSET_HOURS = "6"
