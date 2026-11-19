@@ -585,13 +585,13 @@ def _ydl(url, vid, headers=None, yt_clients=None, quality="1080"):
     host = (urlparse(url).hostname or "").lower()
     if yt_clients:  # YouTube: ask through a different "app" identity (some are not blocked on server IPs)
         opts.setdefault("extractor_args", {})["youtube"] = {"player_client": yt_clients}
-    if os.path.exists(COOKIES) and (USE_COOKIES or any(d in host for d in ("instagram.com", "twitter.com", "x.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch"))):  # these sites often want a login on server IPs
+    if os.path.exists(COOKIES) and (USE_COOKIES or any(d in host for d in ("instagram.com", "twitter.com", "x.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch", "reddit.com", "redd.it"))):  # these sites often want a login on server IPs
         opts["cookiefile"] = COOKIES
     with ytdlp().YoutubeDL(opts) as y:
         return y.extract_info(url, download=True)
 
 
-YT_BLOCKED = re.compile(r"429|too many requests|sign in|not a bot|confirm you|forbidden|403|unavailable|blocked|po.?token|format", re.I)
+YT_BLOCKED = re.compile(r"429|too many requests|sign in|not a bot|confirm you|forbidden|403|unavailable|blocked|po.?token|format|reload|page needs|unable to extract|player|challenge|nsig|signature|javascript|runtime", re.I)
 
 
 def run_ydl(url, vid, headers=None, quality="1080"):
@@ -600,13 +600,16 @@ def run_ydl(url, vid, headers=None, quality="1080"):
         return _ydl(url, vid, headers, None, quality)
     url = re.sub(r"([?&])si=[^&#]*&?", r"\1", url).rstrip("?&")  # drop the share-tracking part
     last = None
-    for clients in (None, ["tv", "web_safari"], ["android_vr"], ["web_embedded", "mweb"]):
+    # on a phone there is no JavaScript engine (deno): start with the client identities that do not need one
+    order = ([["android_vr"], ["web_safari"], ["tv"], ["mweb"], None] if ANDROID
+             else [None, ["tv", "web_safari"], ["android_vr"], ["web_embedded", "mweb"]])
+    for clients in order:
         try:
             return _ydl(url, vid, headers, clients, quality)
         except Exception as e:
             last = e
             drop(vid)
-            if not YT_BLOCKED.search(str(e)):
+            if not (ANDROID or YT_BLOCKED.search(str(e))):
                 break  # a different problem (deleted video, too long ...): other identities will not help
     raise last
 
@@ -748,6 +751,28 @@ def alt():
         slots.release()
 
 
+def fix_reddit_url(url):
+    """Reddit gives several kinds of links; turn them into ones yt-dlp understands."""
+    p = urlparse(url)
+    host = (p.hostname or "").lower()
+    if host == "v.redd.it":  # bare video link -> its playlist (has the sound as a second stream; ffmpeg merges it)
+        vid = p.path.strip("/").split("/")[0]
+        return "https://v.redd.it/%s/HLSPlaylist.m3u8" % vid if vid else url
+    if host == "redd.it":
+        pid = p.path.strip("/").split("/")[0]
+        return "https://www.reddit.com/comments/%s/" % pid if pid else url
+    if host.endswith("reddit.com") and re.search(r"/s/[A-Za-z0-9]+/?$", p.path):  # share link: follow the redirect to the real post
+        try:
+            import urllib.request
+            r = urllib.request.build_opener().open(urllib.request.Request(url, headers={"User-Agent": UA}), timeout=15)
+            final = r.geturl()
+            if url_is_safe(final) and "/comments/" in final:
+                return final.split("?")[0]
+        except Exception:
+            pass
+    return url
+
+
 @app.route("/api/fetch", methods=["POST"])
 @app.route("/api/extract", methods=["POST"])
 @need_auth
@@ -763,6 +788,7 @@ def fetch():
     if not rate_ok("fetch"):
         return jsonify(error="Too many requests. Please wait a few minutes and try again."), 429
     url = re.sub(r"^(https?://)(?:www\.|mobile\.|m\.)?(?:fxtwitter|vxtwitter|fixupx|fixvx|twittpr)\.com", r"\1x.com", url, flags=re.I)
+    url = fix_reddit_url(url)
     quality = pick_quality(body.get("quality"))
     ref_in = str(body.get("referer") or "").strip()
     if ref_in and (len(ref_in) > 2000 or not url_is_safe(ref_in)):
@@ -831,11 +857,13 @@ def fetch():
             if "does not pass filter" in msg or "duration" in msg:
                 msg = "This video is too long (limit %d minutes) or is a live stream." % MAX_MINUTES
             elif re.search(r"youtu(\.be|be\.com)", url.lower()) and ANDROID:
-                msg = "YouTube does not work inside the Android app (the phone has no ffmpeg / JavaScript engine). Use the Windows EXE, or open your hosted website with the phone's browser. Reason: " + msg[:100]
+                msg = "This YouTube video could not be loaded on the phone. A phone has no JavaScript engine, so YouTube works only for some videos here: try another video or link, update the app, or use the Windows EXE. Reason: " + msg[:110]
             elif re.search(r"youtu(\.be|be\.com)", url.lower()) and not shutil.which("deno"):
                 msg = "YouTube needs the 'deno' JavaScript runtime and it is not installed on this machine. Reinstall with requirements.txt (it contains deno) or put deno.exe next to the app. Details: " + msg[:100]
             elif re.search(r"youtu(\.be|be\.com)", url.lower()) and re.search(r"429|too many|sign in|not a bot|confirm you|cookies|login|age|private|members|blocked|forbidden|403", msg, re.I):
                 msg = "YouTube blocked this IP address (data-centre servers like Render are often blocked: sign-in / HTTP 429). The app already tried several YouTube client identities. Fix: run the Windows EXE on your own internet (works best), or add your YouTube cookies (COOKIES_B64 / cookies.txt), or set PROXY_URL to a residential proxy. Private, members-only and age-restricted videos always need cookies."
+            elif re.search(r"reddit\.com|redd\.it", url.lower()) and re.search(r"login|log in|cookie|403|401|429|blocked|forbidden|nsfw|over 18|private|quarantin|too many|unable to download json|no video", msg, re.I):
+                msg = "Reddit refused this request (18+/NSFW posts, private or quarantined subreddits and some networks need a login). Put your own Reddit cookies in cookies.txt (Windows: next to the exe, Android: not possible yet) and try again. Text/image posts without a video cannot be downloaded."
             elif re.search(r"facebook\.com|fb\.watch", url.lower()) and re.search(r"login|cookie|private|not available|permission|log in", msg, re.I):
                 msg = "Facebook says this video is not public (or wants a login). Public videos work. For friends-only or restricted ones add your cookies (COOKIES_B64 setting)."
             elif re.search(r"(twitter|x)\.com", url.lower()) and re.search(r"login|cookie|guest|sensitive|nsfw|age|protected|not authorized|no video|authentication", msg, re.I):

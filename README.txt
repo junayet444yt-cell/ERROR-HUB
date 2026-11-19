@@ -108,3 +108,14 @@ The app opens a start screen at once, uses the same address every time (47821) s
 
 Quality: pick Best / 1080p / 720p / 480p / 360p / 240p / 144p / MP3 before pressing Get Video. Never upscaled.
 Own background: settings (gear) > Add background > any photo or video from your device (stored only on that device).
+
+----------------------------------------------------------
+v31 notes
+----------------------------------------------------------
+* Reddit videos (normal and 18+) are supported through yt-dlp: post links, v.redd.it and redd.it links.
+  18+/NSFW, private or quarantined posts usually need a login: put your own cookies.txt next to the Windows exe.
+* Android app: ffmpeg is now bundled (arm64 phones), so videos that keep sound separately (Reddit, Facebook HD, YouTube)
+  can be merged. YouTube on the phone has no JavaScript engine (deno), so the app tries the YouTube client identities that
+  need none (android_vr, web_safari, tv, mweb); some YouTube videos may still fail, the Windows exe handles all of them.
+* Windows: the release now always contains an .exe: ERROR-HUB-DOWNLODER-Setup.exe (installer) or, if the installer could not
+  be made, a single ERROR-HUB-DOWNLODER.exe; the portable zip is always there too.

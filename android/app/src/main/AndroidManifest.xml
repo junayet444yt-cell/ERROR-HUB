@@ -9,6 +9,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="ERROR HUB"
         android:usesCleartextTraffic="true"
+        android:extractNativeLibs="true"
         android:hardwareAccelerated="true"
         android:theme="@style/AppTheme">
 

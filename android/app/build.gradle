@@ -25,6 +25,11 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true   // libs are unpacked on the phone, so libffmpeg.so can be started as a program
+        }
+    }
 }
 
 chaquopy {

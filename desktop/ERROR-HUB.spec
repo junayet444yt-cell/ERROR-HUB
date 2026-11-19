@@ -21,7 +21,12 @@ for pkg in ("yt_dlp", "yt_dlp_ejs", "curl_cffi", "certifi", "Cryptodome", "mutag
 a = Analysis([os.path.join(ROOT, "desktop", "desktop.py")], pathex=[ROOT], binaries=binaries, datas=datas,
              hiddenimports=hidden + ["app", "waitress"], hookspath=[], runtime_hooks=[], excludes=["tkinter"], noarchive=False)
 pyz = PYZ(a.pure)
-# one folder (not one file): starts fast because nothing has to be unpacked every time you open the app
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ERROR-HUB-DOWNLODER", debug=False, bootloader_ignore_signals=False,
-          strip=False, upx=False, console=False, icon=os.path.join(ROOT, "desktop", "icon.ico"))
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="ERROR-HUB-DOWNLODER")
+if os.environ.get("ONEFILE") == "1":
+    # one single exe (slower to start, but a single file)
+    exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name="ERROR-HUB-DOWNLODER", debug=False, bootloader_ignore_signals=False,
+              strip=False, upx=False, runtime_tmpdir=None, console=False, icon=os.path.join(ROOT, "desktop", "icon.ico"))
+else:
+    # one folder (not one file): starts fast because nothing has to be unpacked every time you open the app
+    exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ERROR-HUB-DOWNLODER", debug=False, bootloader_ignore_signals=False,
+              strip=False, upx=False, console=False, icon=os.path.join(ROOT, "desktop", "icon.ico"))
+    coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="ERROR-HUB-DOWNLODER")

@@ -109,7 +109,8 @@ class MainActivity : Activity() {
                     staticDir.deleteRecursively()
                     copyAssets("static", staticDir)
                     Python.getInstance().getModule("android_main").callAttr(
-                        "start", p, File(cacheDir, "vcache").absolutePath, staticDir.absolutePath, filesDir.absolutePath)
+                        "start", p, File(cacheDir, "vcache").absolutePath, staticDir.absolutePath, filesDir.absolutePath,
+                        applicationInfo.nativeLibraryDir)
                     port = p
                 } catch (e: Exception) {
                     runOnUiThread { Toast.makeText(this, "Could not start: " + e.message, Toast.LENGTH_LONG).show() }
