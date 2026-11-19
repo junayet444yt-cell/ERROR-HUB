@@ -55,13 +55,25 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVer=${{ github.run_number }}" desktop\installer.iss
+          $iscc = Get-ChildItem -Path "C:\Program Files (x86)", "C:\Program Files", "$env:LOCALAPPDATA\Programs" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe not found" }
+          & $iscc.FullName "/DAppVer=${{ github.run_number }}" desktop\installer.iss
+          if (Test-Path installer\ERROR-HUB-DOWNLODER-Setup.exe) { Move-Item installer\ERROR-HUB-DOWNLODER-Setup.exe . }
+      - name: Stand-alone single exe (only if the installer could not be made)
+        if: ${{ hashFiles('ERROR-HUB-DOWNLODER-Setup.exe') == '' }}
+        shell: pwsh
+        env:
+          ONEFILE: "1"
+        run: |
+          pyinstaller --noconfirm --distpath dist-onefile desktop/ERROR-HUB.spec
+          Move-Item dist-onefile\ERROR-HUB-DOWNLODER.exe .\ERROR-HUB-DOWNLODER.exe
       - uses: actions/upload-artifact@v4
         with:
           name: windows-app
           path: |
             ERROR-HUB-DOWNLODER-portable.zip
-            installer/ERROR-HUB-DOWNLODER-Setup.exe
+            ERROR-HUB-DOWNLODER-Setup.exe
+            ERROR-HUB-DOWNLODER.exe
           if-no-files-found: warn
 
   android:
@@ -91,6 +103,15 @@ jobs:
           cp app.py android/app/src/main/python/app.py
           mkdir -p android/app/src/main/assets
           cp -r static android/app/src/main/assets/static
+      - name: Download ffmpeg for the phone (arm64, optional - without it only single-file videos work)
+        continue-on-error: true
+        run: |
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
+          curl -L --retry 4 --retry-delay 5 -o ff.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz
+          tar -xJf ff.tar.xz
+          cp ffmpeg-*-arm64-static/ffmpeg android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
+          chmod 755 android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
+          ls -la android/app/src/main/jniLibs/arm64-v8a/
       - name: Build apk
         run: gradle -p android assembleDebug --no-daemon --console=plain
       - name: Name the file
@@ -113,4 +134,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ERROR HUB DOWNLODER ${{ github.event.inputs.tag || github.ref_name }}
-          files: out/*
+          files: |
+            out/**/*.exe
+            out/**/*.zip
+            out/**/*.apk
