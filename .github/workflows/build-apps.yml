@@ -1,7 +1,5 @@
 name: Build apps (Windows EXE + Android APK)
 
-# How to run: GitHub > Actions > "Build apps" > Run workflow.  Takes about 10-20 minutes.
-# Then open the "Releases" page of the repository: the .exe and the .apk are there to download.
 on:
   workflow_dispatch:
     inputs:
@@ -15,18 +13,25 @@ permissions:
   contents: write
 
 jobs:
-  # creates the release first, so both builds can put their files straight into it
   prepare:
     runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.create_release.outputs.release_tag }}
     steps:
-      - name: Create the release (if it does not exist yet)
+      - name: Create a fresh draft release for this build
+        id: create_release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          BASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || \
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "ERROR HUB DOWNLODER $TAG" \
-            --notes "Windows: download ERROR-HUB-DOWNLODER.exe and double-click it. Android: download ERROR-HUB-DOWNLODER.apk and install it."
+          TAG="$BASE_TAG"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            TAG="${BASE_TAG}-build-${GITHUB_RUN_ID}"
+          fi
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+          gh release create "$TAG" --draft --repo "$GITHUB_REPOSITORY" \
+            --title "ERROR HUB DOWNLODER $BASE_TAG" \
+            --notes "Windows: download ERROR-HUB-DOWNLODER.exe. Android: download ERROR-HUB-DOWNLODER.apk."
 
   windows:
     needs: prepare
@@ -73,8 +78,6 @@ jobs:
           }
           Expand-Archive deno.zip -DestinationPath denoout
           Copy-Item "denoout\deno.exe" desktop\
-
-      # 1) the single .exe first - this is the file you download and double-click
       - name: Build the single exe
         env:
           ONEFILE: "1"
@@ -89,16 +92,14 @@ jobs:
           name: windows-exe
           path: ERROR-HUB-DOWNLODER.exe
           if-no-files-found: error
-
-      # 2) extras (fast-start folder version, zip and installer); if one of these fails the exe above is still released
       - name: Fast-start folder version
         continue-on-error: true
         run: pyinstaller --noconfirm desktop/ERROR-HUB.spec
-      - name: Portable zip (unzip anywhere, run ERROR-HUB-DOWNLODER.exe)
+      - name: Portable zip
         continue-on-error: true
         shell: pwsh
         run: Compress-Archive -Path dist\ERROR-HUB-DOWNLODER -DestinationPath ERROR-HUB-DOWNLODER-portable.zip
-      - name: Setup installer (installs once, then opens fast)
+      - name: Setup installer
         continue-on-error: true
         shell: pwsh
         run: |
@@ -120,9 +121,9 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          TAG: ${{ needs.prepare.outputs.release_tag }}
         run: |
-          $files = @("ERROR-HUB-DOWNLODER.exe", "ERROR-HUB-DOWNLODER-Setup.exe", "ERROR-HUB-DOWNLODER-portable.zip") | Where-Object { Test-Path $_ }
+          $files = @("ERROR-HUB-DOWNLODER.exe", "ERROR-HUB-DOWNLOADER-Setup.exe", "ERROR-HUB-DOWNLODER-portable.zip") | Where-Object { Test-Path $_ }
           Write-Host "uploading:" $files
           if (-not $files) { throw "no Windows file was built" }
           gh release upload $env:TAG $files --clobber --repo $env:GITHUB_REPOSITORY
@@ -162,7 +163,7 @@ jobs:
           mkdir -p android/app/src/main/assets
           printf '%s\n' "$ALLOWED" | tr ',; ' '\n\n\n' | sed '/^$/d' > android/app/src/main/assets/allowed.txt
           echo "allowed accounts:"; cat android/app/src/main/assets/allowed.txt || true
-      - name: Download ffmpeg for the phone (arm64, optional - without it only single-file videos work)
+      - name: Download ffmpeg for the phone (arm64, optional)
         continue-on-error: true
         run: |
           mkdir -p android/app/src/main/jniLibs/arm64-v8a
@@ -170,7 +171,6 @@ jobs:
           tar -xJf ff.tar.xz
           cp ffmpeg-*-arm64-static/ffmpeg android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
           chmod 755 android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
-          ls -la android/app/src/main/jniLibs/arm64-v8a/
       - name: Build apk
         run: gradle -p android assembleDebug --no-daemon --console=plain
       - name: Name the file
@@ -182,5 +182,18 @@ jobs:
       - name: Put the apk into the release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          TAG: ${{ needs.prepare.outputs.release_tag }}
         run: gh release upload "$TAG" ERROR-HUB-DOWNLODER.apk --clobber --repo "$GITHUB_REPOSITORY"
+
+  publish:
+    name: Publish release after all assets are uploaded
+    needs: [prepare, windows, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish the completed release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
