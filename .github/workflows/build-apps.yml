@@ -123,7 +123,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.release_tag }}
         run: |
-          $files = @("ERROR-HUB-DOWNLODER.exe", "ERROR-HUB-DOWNLOADER-Setup.exe", "ERROR-HUB-DOWNLODER-portable.zip") | Where-Object { Test-Path $_ }
+          $files = @("ERROR-HUB-DOWNLODER.exe", "ERROR-HUB-DOWNLODER-Setup.exe", "ERROR-HUB-DOWNLODER-portable.zip") | Where-Object { Test-Path $_ }
           Write-Host "uploading:" $files
           if (-not $files) { throw "no Windows file was built" }
           gh release upload $env:TAG $files --clobber --repo $env:GITHUB_REPOSITORY
