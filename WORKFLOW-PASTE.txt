@@ -1,0 +1,51 @@
+name: Build apps (Windows EXE + Android APK)
+
+# This small file never needs to change again. All the real build steps are in the normal folders ci/windows and ci/android.
+# How to run: GitHub > Actions > "Build apps" > Run workflow (give a new release name each time, e.g. v1.0.5).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release name (for example v1.0.0)"
+        default: "v1.0.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the release (if it does not exist yet)
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || \
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "ERROR HUB DOWNLODER $TAG" \
+            --notes "Windows: download ERROR-HUB-DOWNLODER.exe and double-click it. Android: download ERROR-HUB-DOWNLODER.apk and install it."
+
+  windows:
+    needs: prepare
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./ci/windows
+        with:
+          telemetry_url: ${{ secrets.TELEMETRY_URL }}
+          telemetry_key: ${{ secrets.TELEMETRY_KEY }}
+          run_number: ${{ github.run_number }}
+
+  android:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./ci/android
+        with:
+          telemetry_url: ${{ secrets.TELEMETRY_URL }}
+          telemetry_key: ${{ secrets.TELEMETRY_KEY }}
+          allowed_emails: ${{ vars.ALLOWED_EMAILS }}

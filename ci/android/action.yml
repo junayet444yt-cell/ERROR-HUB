@@ -1,0 +1,94 @@
+name: Build the Android apk
+description: Builds the Android apk and puts it into the release
+
+inputs:
+  telemetry_url:
+    description: optional stats address
+    required: false
+    default: ""
+  telemetry_key:
+    description: optional stats key
+    required: false
+    default: ""
+  allowed_emails:
+    description: optional list of allowed Google accounts
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Write stats settings (optional - empty means stats are off)
+      shell: bash
+      env:
+        TURL: ${{ inputs.telemetry_url }}
+        TKEY: ${{ inputs.telemetry_key }}
+      run: printf '{"url":"%s","key":"%s"}' "$TURL" "$TKEY" > static/telemetry.json
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: "8.9"
+
+    - name: Accept Android licenses
+      shell: bash
+      run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+    - name: Copy the app code into the Android project
+      shell: bash
+      run: |
+        cp app.py android/app/src/main/python/app.py
+        mkdir -p android/app/src/main/assets
+        cp -r static android/app/src/main/assets/static
+
+    - name: Allowed Google accounts for the phone app (optional)
+      shell: bash
+      env:
+        ALLOWED: ${{ inputs.allowed_emails }}
+      run: |
+        printf '%s\n' "$ALLOWED" | tr ',; ' '\n\n\n' | sed '/^$/d' > android/app/src/main/assets/allowed.txt
+        echo "allowed accounts:"; cat android/app/src/main/assets/allowed.txt || true
+
+    - name: Download ffmpeg for the phone (arm64, optional)
+      shell: bash
+      run: |
+        mkdir -p android/app/src/main/jniLibs/arm64-v8a
+        ( curl -L --retry 4 --retry-delay 5 -o ff.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz \
+          && tar -xJf ff.tar.xz \
+          && cp ffmpeg-*-arm64-static/ffmpeg android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so \
+          && chmod 755 android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so \
+          && ls -la android/app/src/main/jniLibs/arm64-v8a/ ) || echo "ffmpeg for the phone skipped"
+        exit 0
+
+    - name: Download QuickJS for the phone (small JavaScript engine that YouTube needs, optional)
+      shell: bash
+      run: |
+        mkdir -p android/app/src/main/jniLibs/arm64-v8a
+        ( curl -L --retry 4 --retry-delay 5 -o android/app/src/main/jniLibs/arm64-v8a/libqjs.so https://github.com/quickjs-ng/quickjs/releases/latest/download/qjs-linux-aarch64 \
+          && chmod 755 android/app/src/main/jniLibs/arm64-v8a/libqjs.so ) || echo "QuickJS for the phone skipped"
+        exit 0
+
+    - name: Build apk
+      shell: bash
+      run: gradle -p android assembleDebug --no-daemon --console=plain
+
+    - name: Name the file
+      shell: bash
+      run: cp android/app/build/outputs/apk/debug/app-debug.apk ERROR-HUB-DOWNLODER.apk
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: ERROR-HUB-DOWNLODER.apk
+
+    - name: Put the apk into the release
+      shell: bash
+      run: gh release upload "$TAG" ERROR-HUB-DOWNLODER.apk --clobber --repo "$GITHUB_REPOSITORY"

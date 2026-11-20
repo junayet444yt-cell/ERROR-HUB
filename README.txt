@@ -131,3 +131,8 @@ v33 notes
 * Windows: put cookies.txt next to the exe, or a file browser.txt containing one word (firefox / edge / chrome / brave) to use
   the logins of that browser. Firefox is the most reliable (Chrome/Edge protect their cookies).
 * Admin panel: see admin-worker/ (Cloudflare Worker + D1). Set the GitHub secrets TELEMETRY_URL and TELEMETRY_KEY, then build again.
+
+v36: the Android app now also ships QuickJS (arm64), the small JavaScript engine yt-dlp needs for YouTube, so YouTube can work on the phone like on Windows.
+
+v37: Reddit - a link to a subreddit/profile is refused with a clear message (paste the link of ONE post, it contains /comments/).
+If yt-dlp is refused, the app looks at the old.reddit.com page (with the "I am over 18" cookie, no login) for the real video (v.redd.it, RedGIFs, Streamable ...).

@@ -1,48 +1,46 @@
 """Starts the downloader (Flask) inside the Android app, on 127.0.0.1."""
-import os, subprocess, threading, stat
+import os, subprocess, threading
 
 _started = False
 
 
 def _setup_ffmpeg(native_dir, files_dir):
-    """Enable FFmpeg only after verifying that the packaged executable really runs on this Android device."""
-    candidates = []
-    if native_dir:
-        candidates.append(os.path.join(native_dir, "libffmpeg.so"))
-        candidates.append(os.path.join(native_dir, "ffmpeg"))
-    bin_dir = os.path.join(files_dir, "bin")
-    os.makedirs(bin_dir, exist_ok=True)
+    """The apk ships a static ffmpeg as libffmpeg.so (the only place Android lets an app run a program from).
+    If it runs, put it on PATH as 'ffmpeg' so videos with separate sound (Reddit, Facebook HD, YouTube ...) can be merged."""
+    lib = os.path.join(native_dir or "", "libffmpeg.so")
+    if not os.path.exists(lib):
+        return False
+    try:
+        b = os.path.join(files_dir, "bin")
+        os.makedirs(b, exist_ok=True)
+        link = os.path.join(b, "ffmpeg")
+        if os.path.lexists(link):
+            os.remove(link)
+        os.symlink(lib, link)
+        ok = subprocess.run([link, "-version"], capture_output=True, timeout=20).returncode == 0
+        if ok:
+            os.environ["PATH"] = b + os.pathsep + os.environ.get("PATH", "")
+        return ok
+    except Exception:
+        return False
 
-    # Android APKs extract jniLibs into nativeLibraryDir. Some devices allow direct execution,
-    # while others need an app-private copy. Test both instead of trusting that the file exists.
-    for source in candidates[:]:
-        if not os.path.isfile(source):
-            continue
-        try:
-            os.chmod(source, os.stat(source).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-            result = subprocess.run([source, "-version"], capture_output=True, timeout=25)
-            if result.returncode == 0:
-                os.environ["PATH"] = os.path.dirname(source) + os.pathsep + os.environ.get("PATH", "")
-                os.environ["FFMPEG_LOCATION"] = source
-                return True
-        except Exception:
-            pass
-        # Copy fallback for devices that reject execution through the native-library symlink.
-        try:
-            target = os.path.join(bin_dir, "ffmpeg")
-            with open(source, "rb") as src, open(target, "wb") as dst:
-                dst.write(src.read())
-            os.chmod(target, 0o755)
-            result = subprocess.run([target, "-version"], capture_output=True, timeout=25)
-            if result.returncode == 0:
-                os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
-                os.environ["FFMPEG_LOCATION"] = target
-                return True
-        except Exception:
-            pass
 
-    os.environ.pop("FFMPEG_LOCATION", None)
-    return False
+def _setup_qjs(native_dir, files_dir):
+    """QuickJS (a tiny JavaScript engine) is shipped like ffmpeg. yt-dlp needs a JavaScript engine for YouTube."""
+    lib = os.path.join(native_dir or "", "libqjs.so")
+    if not os.path.exists(lib):
+        return ""
+    try:
+        b = os.path.join(files_dir, "bin")
+        os.makedirs(b, exist_ok=True)
+        link = os.path.join(b, "qjs")
+        if os.path.lexists(link):
+            os.remove(link)
+        os.symlink(lib, link)
+        out = subprocess.run([link, "--help"], capture_output=True, timeout=20)
+        return link if b"QuickJS" in (out.stdout + out.stderr) else ""
+    except Exception:
+        return ""
 
 
 def start(port, cache_dir, static_dir, files_dir, native_dir=""):
@@ -57,5 +55,8 @@ def start(port, cache_dir, static_dir, files_dir, native_dir=""):
     except Exception:
         pass
     _setup_ffmpeg(native_dir, files_dir)
+    q = _setup_qjs(native_dir, files_dir)
+    if q:
+        os.environ["QJS_PATH"] = q
     import app as server
     threading.Thread(target=lambda: server.serve("127.0.0.1", int(port)), daemon=True).start()

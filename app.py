@@ -531,14 +531,6 @@ def pick_quality(q):
     return q if q in QUALITIES else "1080"
 
 
-def ffmpeg_executable():
-    """Return only an FFmpeg binary that Android startup has verified, or a normal desktop PATH binary."""
-    configured = os.environ.get("FFMPEG_LOCATION", "").strip()
-    if configured and os.path.isfile(configured):
-        return configured
-    return shutil.which("ffmpeg")
-
-
 def build_format(q, has_ffmpeg):
     """yt-dlp format string for the quality the user chose (a height limit; it never upscales)."""
     q = pick_quality(q)
@@ -556,11 +548,9 @@ def build_format(q, has_ffmpeg):
 
 
 def _ydl(url, vid, headers=None, yt_clients=None, quality="1080", fmt=None):
-    ffmpeg = ffmpeg_executable()
-    has_ffmpeg = bool(ffmpeg)
     opts = {
         "outtmpl": os.path.join(CACHE, vid + ".%(ext)s"),
-        "format": build_format(quality, has_ffmpeg),
+        "format": build_format(quality, bool(shutil.which("ffmpeg"))),
         "merge_output_format": "mp4",
         "noplaylist": True,
         "playlistend": 1,  # a page with several videos: never download them all
@@ -587,12 +577,9 @@ def _ydl(url, vid, headers=None, yt_clients=None, quality="1080", fmt=None):
     if _deno:
         opts["js_runtimes"] = {"deno": {"path": _deno}}
     opts["remote_components"] = ["ejs:github"]  # fallback: fetch the challenge solver if the bundled one is missing/outdated
-    if has_ffmpeg:
-        # Pass the exact tested binary path; yt-dlp may not resolve a renamed APK asset via PATH alone.
-        opts["ffmpeg_location"] = ffmpeg
-    else:  # no verified FFmpeg: request a single ready-made stream and never attempt a merge
+    if not shutil.which("ffmpeg"):  # no ffmpeg (Android build): nothing to merge
         opts.pop("merge_output_format", None)
-    if has_ffmpeg and pick_quality(quality) == "audio":  # audio only: make an MP3
+    elif pick_quality(quality) == "audio":  # audio only: make an MP3
         opts.pop("merge_output_format", None)
         opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
     host = (urlparse(url).hostname or "").lower()
@@ -600,6 +587,8 @@ def _ydl(url, vid, headers=None, yt_clients=None, quality="1080", fmt=None):
         opts.setdefault("extractor_args", {})["youtube"] = {"player_client": yt_clients}
     if os.path.exists(COOKIES) and (USE_COOKIES or any(d in host for d in ("instagram.com", "twitter.com", "x.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch", "reddit.com", "redd.it"))):  # these sites often want a login on server IPs
         opts["cookiefile"] = COOKIES
+    if os.environ.get("QJS_PATH"):  # phone: no deno, use the bundled QuickJS to solve YouTube's JavaScript puzzle
+        opts["js_runtimes"] = {"quickjs": {"path": os.environ["QJS_PATH"]}}
     if fmt:  # last-resort format (any ready-made file)
         opts["format"] = fmt
         opts.pop("postprocessors", None)
@@ -620,7 +609,8 @@ def run_ydl(url, vid, headers=None, quality="1080"):
     url = re.sub(r"([?&])si=[^&#]*&?", r"\1", url).rstrip("?&")  # drop the share-tracking part
     last = None
     # on a phone there is no JavaScript engine (deno): start with the client identities that do not need one
-    order = ([["android_vr"], ["web_safari"], ["tv"], ["mweb"], None] if ANDROID
+    order = ([None, ["android_vr"], ["web_safari"], ["tv"], ["mweb"]] if (ANDROID and os.environ.get("QJS_PATH")) else
+             [["android_vr"], ["web_safari"], ["tv"], ["mweb"], None] if ANDROID
              else [None, ["tv", "web_safari"], ["android_vr"], ["web_embedded", "mweb"]])
     for clients in order:
         try:
@@ -629,7 +619,7 @@ def run_ydl(url, vid, headers=None, quality="1080"):
             except Exception as e0:
                 if re.search(r"format is not available|requested format|no video formats", str(e0), re.I) and pick_quality(quality) != "audio":
                     drop(vid)
-                    return _ydl(url, vid, headers, clients, quality, fmt=("b/bv*+ba/best" if ffmpeg_executable() else "b/best"))  # avoid a merge when FFmpeg is unavailable
+                    return _ydl(url, vid, headers, clients, quality, fmt="b/bv*+ba/best")  # any ready-made file, any quality
                 raise
         except Exception as e:
             last = e
@@ -694,7 +684,7 @@ def health():
 @app.route("/api/diag")
 def diag():
     return jsonify(yt_dlp=ytdlp().version.__version__, deno=bool(shutil.which("deno")),
-                   ffmpeg=bool(ffmpeg_executable()), ffmpeg_path=ffmpeg_executable() or "", cookies=os.path.exists(COOKIES), android=ANDROID)
+                   ffmpeg=bool(shutil.which("ffmpeg")), cookies=os.path.exists(COOKIES), android=ANDROID)
 
 
 @app.errorhandler(Exception)
@@ -776,6 +766,47 @@ def alt():
         slots.release()
 
 
+REDDIT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+
+def is_reddit(url):
+    h = (urlparse(url).hostname or "").lower()
+    return h.endswith("reddit.com") or h.endswith("redd.it")
+
+
+def reddit_not_a_post(url):
+    """True for a subreddit / user / home link: there is no single video to download there."""
+    p = urlparse(url)
+    h = (p.hostname or "").lower()
+    if not h.endswith("reddit.com"):
+        return False
+    path = p.path.lower()
+    return not ("/comments/" in path or re.search(r"/s/[a-z0-9]+/?$", path) or path.startswith("/video/") or path.startswith("/gallery/"))
+
+
+def reddit_candidates(url):
+    """No login needed for many 18+ posts when we look at the old.reddit page with the 'I am over 18' cookie:
+    the page names the real video (v.redd.it, RedGIFs, Streamable ...). Returns links that yt-dlp can download."""
+    import urllib.request
+    p = urlparse(url)
+    path = p.path
+    m = re.search(r"/comments/([a-z0-9]+)", path, re.I)
+    if not m:
+        return []
+    page = "https://old.reddit.com/comments/%s/" % m.group(1)
+    req = urllib.request.Request(page, headers={"User-Agent": REDDIT_UA, "Cookie": "over18=1", "Accept-Language": "en-US,en;q=0.8"})
+    try:
+        html = urllib.request.build_opener().open(req, timeout=20).read(1500000).decode("utf-8", "ignore")
+    except Exception:
+        return []
+    out = []
+    for vid in re.findall(r"https?://v\.redd\.it/([a-z0-9]{8,})", html, re.I):
+        out.append("https://v.redd.it/%s/HLSPlaylist.m3u8" % vid)
+    out += ["https://www.redgifs.com/watch/" + g.lower() for g in re.findall(r"redgifs\.com/(?:watch|ifr)/([a-zA-Z]+)", html)]
+    out += re.findall(r"https?://(?:www\.)?(?:streamable\.com/[a-z0-9]+|gfycat\.com/[a-zA-Z]+|imgur\.com/(?:a/|gallery/)?[A-Za-z0-9]+)", html)
+    return [u for u in dict.fromkeys(out) if url_is_safe(u)][:4]
+
+
 def fix_reddit_url(url):
     """Reddit gives several kinds of links; turn them into ones yt-dlp understands."""
     p = urlparse(url)
@@ -813,6 +844,8 @@ def fetch():
     if not rate_ok("fetch"):
         return jsonify(error="Too many requests. Please wait a few minutes and try again."), 429
     url = re.sub(r"^(https?://)(?:www\.|mobile\.|m\.)?(?:fxtwitter|vxtwitter|fixupx|fixvx|twittpr)\.com", r"\1x.com", url, flags=re.I)
+    if is_reddit(url) and reddit_not_a_post(url):
+        return jsonify(error="This is a Reddit page (subreddit / profile), not one post. Open the post you want, tap Share > Copy link, and paste THAT link (it contains /comments/)."), 400
     url = fix_reddit_url(url)
     quality = pick_quality(body.get("quality"))
     ref_in = str(body.get("referer") or "").strip()
@@ -842,6 +875,17 @@ def fetch():
                 info = x_download(url, vid)
             except Exception as e:
                 err = err or e
+        if info is None and is_reddit(url):  # Reddit: try the real video links found on the old.reddit page
+            try:
+                for cu in reddit_candidates(url):
+                    drop(vid)
+                    try:
+                        info = run_ydl(cu, vid, {"Referer": "https://www.reddit.com/"}, quality)
+                        break
+                    except Exception as e5:
+                        err = err or e5
+            except Exception:
+                pass
         if info is None and not re.search(r"youtu(\.be|be\.com)", url.lower()):  # fallback: dig the real video link out of the page (not for YouTube pages)
             try:
                 ranked = rank_candidates(find_media(url, ref_in or None), with_dur=True)
