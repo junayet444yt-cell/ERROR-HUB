@@ -1,6 +1,8 @@
 package com.errorhub.downloader
 
+import android.accounts.AccountManager
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ClipboardManager
 import android.content.ContentValues
 import android.content.Context
@@ -36,6 +38,9 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var fileCb: ValueCallback<Array<Uri>>? = null
     private val reqFile = 4711
+    private val reqAccount = 4712
+    private val reqLogin = 4713
+    private val prefs by lazy { getSharedPreferences("errorhub", Context.MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +48,38 @@ class MainActivity : Activity() {
         setContentView(web)
         setupWebView()
         web.loadData("<html><body style='background:#08020f;color:#e8dcc0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'>Starting ERROR HUB…</body></html>", "text/html", "utf-8")
-        startServer()
+        val saved = prefs.getString("account", "") ?: ""
+        if (saved.isNotEmpty() && allowed(saved)) startServer() else askAccount()
+    }
+
+    // ---- the app opens only after you pick a Google account that is on THIS phone (and, if a list is set, is on the allowed list) ----
+    private fun allowedList(): List<String> = try {
+        assets.open("allowed.txt").bufferedReader().readLines().map { it.trim().lowercase() }.filter { it.isNotEmpty() && !it.startsWith("#") }
+    } catch (e: Exception) { emptyList() }
+
+    private fun allowed(email: String): Boolean {
+        val list = allowedList()
+        return list.isEmpty() || list.contains(email.lowercase())
+    }
+
+    private fun askAccount() {
+        try {
+            val i = AccountManager.newChooseAccountIntent(null, null, arrayOf("com.google"), null, null, null, null)
+            startActivityForResult(i, reqAccount)
+        } catch (e: Exception) {
+            AlertDialog.Builder(this).setMessage("No Google account found on this phone. Add one in Settings > Accounts, then open the app again.")
+                .setCancelable(false).setPositiveButton("Close") { _, _ -> finish() }.show()
+        }
+    }
+
+    private fun accountDenied(email: String?) {
+        AlertDialog.Builder(this)
+            .setTitle("Not allowed")
+            .setMessage(if (email.isNullOrEmpty()) "Choose a Google account to open the app." else "$email is not on the allowed list of this app.")
+            .setCancelable(false)
+            .setPositiveButton("Choose again") { _, _ -> askAccount() }
+            .setNegativeButton("Close") { _, _ -> finish() }
+            .show()
     }
 
     private fun setupWebView() {
@@ -82,6 +118,18 @@ class MainActivity : Activity() {
     @Deprecated("old API, still works")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == reqAccount) {
+            val email = if (resultCode == RESULT_OK) data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME) else null
+            if (!email.isNullOrEmpty() && allowed(email)) {
+                prefs.edit().putString("account", email).apply()
+                if (port == 0 && !starting) startServer() else web.reload()
+            } else accountDenied(email)
+            return
+        }
+        if (requestCode == reqLogin) {
+            web.evaluateJavascript("window.loginDone&&window.loginDone('" + (data?.getStringExtra("site") ?: "") + "'," + (resultCode == RESULT_OK) + ")", null)
+            return
+        }
         if (requestCode == reqFile) {
             fileCb?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
             fileCb = null
@@ -89,6 +137,19 @@ class MainActivity : Activity() {
     }
 
     private inner class Bridge {
+        @JavascriptInterface
+        fun login(site: String) {
+            runOnUiThread { startActivityForResult(Intent(this@MainActivity, LoginActivity::class.java).putExtra("site", site), reqLogin) }
+        }
+
+        @JavascriptInterface
+        fun account(): String = prefs.getString("account", "") ?: ""
+
+        @JavascriptInterface
+        fun switchAccount() {
+            runOnUiThread { askAccount() }
+        }
+
         @JavascriptInterface
         fun paste(): String {
             return try {

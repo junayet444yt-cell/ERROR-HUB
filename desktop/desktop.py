@@ -26,6 +26,13 @@ for c in (os.path.join(exe_dir, "cookies.txt"), os.path.join(home, "cookies.txt"
     if os.path.exists(c):
         os.environ["COOKIES_FILE"] = c
         break
+for c in (os.path.join(exe_dir, "browser.txt"), os.path.join(home, "browser.txt")):  # optional: one word, e.g. firefox -> use that browser's logins
+    if os.path.exists(c):
+        try:
+            os.environ["COOKIES_BROWSER"] = open(c, encoding="utf-8").read().strip().split()[0].lower()
+        except Exception:
+            pass
+        break
 os.environ.update({"VCACHE": os.path.join(home, "cache"), "RATE_MAX": "100000", "MAX_JOBS": "3",
                    "DESKTOP_IDLE_EXIT": "1800", "ERRORHUB_PLATFORM": "exe", "DATA_DIR": home, "BLOCKED_SITES": "none",
                    "STATIC_DIR": res("static")})

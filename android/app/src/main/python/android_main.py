@@ -30,7 +30,7 @@ def start(port, cache_dir, static_dir, files_dir, native_dir=""):
     if _started:
         return
     _started = True
-    os.environ.update({"VCACHE": cache_dir, "STATIC_DIR": static_dir, "RATE_MAX": "100000", "MAX_JOBS": "2", "HOME": files_dir, "BLOCKED_SITES": "none", "ERRORHUB_ANDROID": "1", "ERRORHUB_PLATFORM": "apk", "DATA_DIR": files_dir})
+    os.environ.update({"VCACHE": cache_dir, "STATIC_DIR": static_dir, "RATE_MAX": "100000", "MAX_JOBS": "2", "HOME": files_dir, "BLOCKED_SITES": "none", "COOKIES_FILE": os.path.join(files_dir, "cookies.txt"), "ERRORHUB_ANDROID": "1", "ERRORHUB_PLATFORM": "apk", "DATA_DIR": files_dir})
     try:  # make sure HTTPS works on Android
         import certifi
         os.environ.setdefault("SSL_CERT_FILE", certifi.where())

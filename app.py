@@ -547,7 +547,7 @@ def build_format(q, has_ffmpeg):
             "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b") % {"h": h}
 
 
-def _ydl(url, vid, headers=None, yt_clients=None, quality="1080"):
+def _ydl(url, vid, headers=None, yt_clients=None, quality="1080", fmt=None):
     opts = {
         "outtmpl": os.path.join(CACHE, vid + ".%(ext)s"),
         "format": build_format(quality, bool(shutil.which("ffmpeg"))),
@@ -587,6 +587,12 @@ def _ydl(url, vid, headers=None, yt_clients=None, quality="1080"):
         opts.setdefault("extractor_args", {})["youtube"] = {"player_client": yt_clients}
     if os.path.exists(COOKIES) and (USE_COOKIES or any(d in host for d in ("instagram.com", "twitter.com", "x.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch", "reddit.com", "redd.it"))):  # these sites often want a login on server IPs
         opts["cookiefile"] = COOKIES
+    if fmt:  # last-resort format (any ready-made file)
+        opts["format"] = fmt
+        opts.pop("postprocessors", None)
+    br = os.environ.get("COOKIES_BROWSER", "").strip().lower()  # Windows: use the login of Firefox / Edge / Chrome (file browser.txt)
+    if br and "cookiefile" not in opts and any(d in host for d in ("instagram.com", "twitter.com", "x.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch", "reddit.com", "redd.it")):
+        opts["cookiesfrombrowser"] = (br,)
     with ytdlp().YoutubeDL(opts) as y:
         return y.extract_info(url, download=True)
 
@@ -605,7 +611,13 @@ def run_ydl(url, vid, headers=None, quality="1080"):
              else [None, ["tv", "web_safari"], ["android_vr"], ["web_embedded", "mweb"]])
     for clients in order:
         try:
-            return _ydl(url, vid, headers, clients, quality)
+            try:
+                return _ydl(url, vid, headers, clients, quality)
+            except Exception as e0:
+                if re.search(r"format is not available|requested format|no video formats", str(e0), re.I) and pick_quality(quality) != "audio":
+                    drop(vid)
+                    return _ydl(url, vid, headers, clients, quality, fmt="b/bv*+ba/best")  # any ready-made file, any quality
+                raise
         except Exception as e:
             last = e
             drop(vid)
@@ -863,7 +875,7 @@ def fetch():
             elif re.search(r"youtu(\.be|be\.com)", url.lower()) and re.search(r"429|too many|sign in|not a bot|confirm you|cookies|login|age|private|members|blocked|forbidden|403", msg, re.I):
                 msg = "YouTube blocked this IP address (data-centre servers like Render are often blocked: sign-in / HTTP 429). The app already tried several YouTube client identities. Fix: run the Windows EXE on your own internet (works best), or add your YouTube cookies (COOKIES_B64 / cookies.txt), or set PROXY_URL to a residential proxy. Private, members-only and age-restricted videos always need cookies."
             elif re.search(r"reddit\.com|redd\.it", url.lower()) and re.search(r"login|log in|cookie|403|401|429|blocked|forbidden|nsfw|over 18|private|quarantin|too many|unable to download json|no video", msg, re.I):
-                msg = "Reddit refused this request (18+/NSFW posts, private or quarantined subreddits and some networks need a login). Put your own Reddit cookies in cookies.txt (Windows: next to the exe, Android: not possible yet) and try again. Text/image posts without a video cannot be downloaded."
+                msg = "Reddit refused this request (18+/NSFW posts, private or quarantined subreddits and some networks need a login). Log in to Reddit and try again: Android app = Settings (gear) > Login > Reddit; Windows = put your own cookies.txt (or a browser.txt containing the word firefox) next to the exe. Text/image posts without a video cannot be downloaded."
             elif re.search(r"facebook\.com|fb\.watch", url.lower()) and re.search(r"login|cookie|private|not available|permission|log in", msg, re.I):
                 msg = "Facebook says this video is not public (or wants a login). Public videos work. For friends-only or restricted ones add your cookies (COOKIES_B64 setting)."
             elif re.search(r"(twitter|x)\.com", url.lower()) and re.search(r"login|cookie|guest|sensitive|nsfw|age|protected|not authorized|no video|authentication", msg, re.I):

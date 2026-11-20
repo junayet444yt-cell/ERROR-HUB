@@ -119,3 +119,15 @@ v31 notes
   need none (android_vr, web_safari, tv, mweb); some YouTube videos may still fail, the Windows exe handles all of them.
 * Windows: the release now always contains an .exe: ERROR-HUB-DOWNLODER-Setup.exe (installer) or, if the installer could not
   be made, a single ERROR-HUB-DOWNLODER.exe; the portable zip is always there too.
+
+----------------------------------------------------------
+v33 notes
+----------------------------------------------------------
+* Android app: opens only after you choose a Google account that is on the phone. To allow only certain accounts, set the
+  GitHub repository VARIABLE ALLOWED_EMAILS (Settings > Secrets and variables > Actions > Variables), e.g.
+  me@gmail.com,brother@gmail.com  (empty = any Google account that is on the phone). Build the apk again after changing it.
+* Android app: Settings (gear) > Login: log in to YouTube/Google, Instagram, Facebook, Reddit or X inside the app, press Done.
+  The cookies stay in the app folder and are used by the downloader for those sites.
+* Windows: put cookies.txt next to the exe, or a file browser.txt containing one word (firefox / edge / chrome / brave) to use
+  the logins of that browser. Firefox is the most reliable (Chrome/Edge protect their cookies).
+* Admin panel: see admin-worker/ (Cloudflare Worker + D1). Set the GitHub secrets TELEMETRY_URL and TELEMETRY_KEY, then build again.
