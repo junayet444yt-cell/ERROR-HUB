@@ -1,0 +1,173 @@
+name: Build apps (Windows EXE + Android APK)
+
+# How to run: GitHub > Actions > "Build apps" > Run workflow.  Takes about 10-20 minutes.
+# Then open the "Releases" page of the repository: the .exe and the .apk are there to download.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release name (for example v1.0.0)"
+        default: "v1.0.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write stats settings (optional - empty means stats are off)
+        shell: bash
+        env:
+          TURL: ${{ secrets.TELEMETRY_URL }}
+          TKEY: ${{ secrets.TELEMETRY_KEY }}
+        run: printf '{"url":"%s","key":"%s"}' "$TURL" "$TKEY" > static/telemetry.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+      - name: Download ffmpeg (bundled into the exe)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ProgressPreference = "SilentlyContinue"
+          for ($i = 1; $i -le 3; $i++) {
+            try {
+              Invoke-WebRequest -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip" -OutFile ffmpeg.zip
+              break
+            } catch { Start-Sleep -Seconds 5 }
+          }
+          Expand-Archive ffmpeg.zip -DestinationPath ff
+          Copy-Item "ff\*\bin\ffmpeg.exe" desktop\
+          Copy-Item "ff\*\bin\ffprobe.exe" desktop\
+      - name: Download deno (needed by yt-dlp for YouTube)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ProgressPreference = "SilentlyContinue"
+          for ($i = 1; $i -le 3; $i++) {
+            try {
+              Invoke-WebRequest -Uri "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip" -OutFile deno.zip
+              break
+            } catch { Start-Sleep -Seconds 5 }
+          }
+          Expand-Archive deno.zip -DestinationPath denoout
+          Copy-Item "denoout\deno.exe" desktop\
+
+      # 1) the single .exe first - this is the file you download and double-click
+      - name: Build the single exe
+        env:
+          ONEFILE: "1"
+        run: pyinstaller --noconfirm --distpath dist-onefile --workpath build-onefile desktop/ERROR-HUB.spec
+      - name: Put the exe in the main folder
+        shell: pwsh
+        run: |
+          Copy-Item dist-onefile\ERROR-HUB-DOWNLODER.exe .\ERROR-HUB-DOWNLODER.exe
+          Get-ChildItem *.exe | Select-Object Name, Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: ERROR-HUB-DOWNLODER.exe
+          if-no-files-found: error
+
+      # 2) extras (fast-start folder version, zip and installer); if one of these fails the exe above is still released
+      - name: Fast-start folder version
+        continue-on-error: true
+        run: pyinstaller --noconfirm desktop/ERROR-HUB.spec
+      - name: Portable zip (unzip anywhere, run ERROR-HUB-DOWNLODER.exe)
+        continue-on-error: true
+        shell: pwsh
+        run: Compress-Archive -Path dist\ERROR-HUB-DOWNLODER -DestinationPath ERROR-HUB-DOWNLODER-portable.zip
+      - name: Setup installer (installs once, then opens fast)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $iscc = Get-ChildItem -Path "C:\Program Files (x86)", "C:\Program Files", "$env:LOCALAPPDATA\Programs" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe not found" }
+          & $iscc.FullName "/DAppVer=${{ github.run_number }}" desktop\installer.iss
+          if (Test-Path installer\ERROR-HUB-DOWNLODER-Setup.exe) { Move-Item installer\ERROR-HUB-DOWNLODER-Setup.exe . }
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: windows-extras
+          path: |
+            ERROR-HUB-DOWNLODER-portable.zip
+            ERROR-HUB-DOWNLODER-Setup.exe
+          if-no-files-found: warn
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write stats settings (optional - empty means stats are off)
+        shell: bash
+        env:
+          TURL: ${{ secrets.TELEMETRY_URL }}
+          TKEY: ${{ secrets.TELEMETRY_KEY }}
+        run: printf '{"url":"%s","key":"%s"}' "$TURL" "$TKEY" > static/telemetry.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Accept Android licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Copy the app code into the Android project
+        run: |
+          cp app.py android/app/src/main/python/app.py
+          mkdir -p android/app/src/main/assets
+          cp -r static android/app/src/main/assets/static
+      - name: Allowed Google accounts for the phone app (optional)
+        env:
+          ALLOWED: ${{ vars.ALLOWED_EMAILS }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          printf '%s\n' "$ALLOWED" | tr ',; ' '\n\n\n' | sed '/^$/d' > android/app/src/main/assets/allowed.txt
+          echo "allowed accounts:"; cat android/app/src/main/assets/allowed.txt || true
+      - name: Download ffmpeg for the phone (arm64, optional - without it only single-file videos work)
+        continue-on-error: true
+        run: |
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
+          curl -L --retry 4 --retry-delay 5 -o ff.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz
+          tar -xJf ff.tar.xz
+          cp ffmpeg-*-arm64-static/ffmpeg android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
+          chmod 755 android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
+          ls -la android/app/src/main/jniLibs/arm64-v8a/
+      - name: Build apk
+        run: gradle -p android assembleDebug --no-daemon --console=plain
+      - name: Name the file
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ERROR-HUB-DOWNLODER.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ERROR-HUB-DOWNLODER.apk
+
+  release:
+    needs: [windows, android]
+    if: ${{ !cancelled() && (needs.windows.result == 'success' || needs.android.result == 'success') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ERROR HUB DOWNLODER ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            out/**/*.exe
+            out/**/*.zip
+            out/**/*.apk
