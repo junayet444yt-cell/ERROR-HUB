@@ -531,6 +531,14 @@ def pick_quality(q):
     return q if q in QUALITIES else "1080"
 
 
+def ffmpeg_executable():
+    """Return only an FFmpeg binary that Android startup has verified, or a normal desktop PATH binary."""
+    configured = os.environ.get("FFMPEG_LOCATION", "").strip()
+    if configured and os.path.isfile(configured):
+        return configured
+    return shutil.which("ffmpeg")
+
+
 def build_format(q, has_ffmpeg):
     """yt-dlp format string for the quality the user chose (a height limit; it never upscales)."""
     q = pick_quality(q)
@@ -548,9 +556,11 @@ def build_format(q, has_ffmpeg):
 
 
 def _ydl(url, vid, headers=None, yt_clients=None, quality="1080", fmt=None):
+    ffmpeg = ffmpeg_executable()
+    has_ffmpeg = bool(ffmpeg)
     opts = {
         "outtmpl": os.path.join(CACHE, vid + ".%(ext)s"),
-        "format": build_format(quality, bool(shutil.which("ffmpeg"))),
+        "format": build_format(quality, has_ffmpeg),
         "merge_output_format": "mp4",
         "noplaylist": True,
         "playlistend": 1,  # a page with several videos: never download them all
@@ -577,9 +587,12 @@ def _ydl(url, vid, headers=None, yt_clients=None, quality="1080", fmt=None):
     if _deno:
         opts["js_runtimes"] = {"deno": {"path": _deno}}
     opts["remote_components"] = ["ejs:github"]  # fallback: fetch the challenge solver if the bundled one is missing/outdated
-    if not shutil.which("ffmpeg"):  # no ffmpeg (Android build): nothing to merge
+    if has_ffmpeg:
+        # Pass the exact tested binary path; yt-dlp may not resolve a renamed APK asset via PATH alone.
+        opts["ffmpeg_location"] = ffmpeg
+    else:  # no verified FFmpeg: request a single ready-made stream and never attempt a merge
         opts.pop("merge_output_format", None)
-    elif pick_quality(quality) == "audio":  # audio only: make an MP3
+    if has_ffmpeg and pick_quality(quality) == "audio":  # audio only: make an MP3
         opts.pop("merge_output_format", None)
         opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
     host = (urlparse(url).hostname or "").lower()
@@ -616,7 +629,7 @@ def run_ydl(url, vid, headers=None, quality="1080"):
             except Exception as e0:
                 if re.search(r"format is not available|requested format|no video formats", str(e0), re.I) and pick_quality(quality) != "audio":
                     drop(vid)
-                    return _ydl(url, vid, headers, clients, quality, fmt="b/bv*+ba/best")  # any ready-made file, any quality
+                    return _ydl(url, vid, headers, clients, quality, fmt=("b/bv*+ba/best" if ffmpeg_executable() else "b/best"))  # avoid a merge when FFmpeg is unavailable
                 raise
         except Exception as e:
             last = e
@@ -681,7 +694,7 @@ def health():
 @app.route("/api/diag")
 def diag():
     return jsonify(yt_dlp=ytdlp().version.__version__, deno=bool(shutil.which("deno")),
-                   ffmpeg=bool(shutil.which("ffmpeg")), cookies=os.path.exists(COOKIES), android=ANDROID)
+                   ffmpeg=bool(ffmpeg_executable()), ffmpeg_path=ffmpeg_executable() or "", cookies=os.path.exists(COOKIES), android=ANDROID)
 
 
 @app.errorhandler(Exception)
