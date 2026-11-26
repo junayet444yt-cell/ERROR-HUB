@@ -619,7 +619,7 @@ def run_ydl(url, vid, headers=None, quality="1080"):
             except Exception as e0:
                 if re.search(r"format is not available|requested format|no video formats", str(e0), re.I) and pick_quality(quality) != "audio":
                     drop(vid)
-                    return _ydl(url, vid, headers, clients, quality, fmt="b/bv*+ba/best")  # any ready-made file, any quality
+                    return _ydl(url, vid, headers, clients, quality, fmt=("b/bv*+ba/best" if shutil.which("ffmpeg") else "b[ext=mp4]/b"))  # any ready-made file, any quality
                 raise
         except Exception as e:
             last = e
@@ -699,7 +699,8 @@ def on_error(e):
 @app.route("/api/status")
 def status():
     return jsonify(need=bool(PASSWORD), ok=bool(session.get("ok")) or not PASSWORD, contact=CONTACT,
-                   blocked=BLOCKED_NAMES, max_mb=MAX_MB, stats=bool(TEL_URL))
+                   blocked=BLOCKED_NAMES, max_mb=MAX_MB, ffmpeg=bool(shutil.which("ffmpeg")),
+                   js=bool(os.environ.get("QJS_PATH") or shutil.which("deno") or shutil.which("node")), stats=bool(TEL_URL))
 
 
 @app.route("/api/login", methods=["POST"])
@@ -807,6 +808,37 @@ def reddit_candidates(url):
     return [u for u in dict.fromkeys(out) if url_is_safe(u)][:4]
 
 
+FB_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uagent.php)"
+
+
+def is_facebook(url):
+    h = (urlparse(url).hostname or "").lower()
+    return h.endswith("facebook.com") or h == "fb.watch" or h.endswith(".fb.watch") or h == "fb.me"
+
+
+def facebook_preview(url):
+    """Follow a Facebook share link and read its public preview tags (the same ones a chat app uses to show a preview).
+    Returns (real_page_url, direct_video_url_or_None). No login needed for public videos."""
+    import html as _html
+    import urllib.request
+    try:
+        r = urllib.request.build_opener().open(urllib.request.Request(url, headers={"User-Agent": FB_UA, "Accept-Language": "en-US,en;q=0.8"}), timeout=20)
+        final = r.geturl()
+        page = r.read(1200000).decode("utf-8", "ignore")
+    except Exception:
+        return url, None
+    def meta(prop):
+        m = re.search(r'<meta[^>]+property=["\']%s["\'][^>]+content=["\']([^"\']+)' % re.escape(prop), page, re.I) or \
+            re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']%s["\']' % re.escape(prop), page, re.I)
+        return _html.unescape(m.group(1)) if m else None
+    real = meta("og:url") or final
+    real = real if (real and url_is_safe(real) and "login" not in real and "checkpoint" not in real) else url
+    vid = meta("og:video:secure_url") or meta("og:video:url") or meta("og:video")
+    if vid and not (url_is_safe(vid) and re.search(r"\.(mp4|m4v|mov)(\?|$)|video", vid, re.I)):
+        vid = None
+    return real, vid
+
+
 def fix_reddit_url(url):
     """Reddit gives several kinds of links; turn them into ones yt-dlp understands."""
     p = urlparse(url)
@@ -847,6 +879,11 @@ def fetch():
     if is_reddit(url) and reddit_not_a_post(url):
         return jsonify(error="This is a Reddit page (subreddit / profile), not one post. Open the post you want, tap Share > Copy link, and paste THAT link (it contains /comments/)."), 400
     url = fix_reddit_url(url)
+    fb_direct = None
+    if is_facebook(url):
+        url = re.sub(r"[?&](mibextid|rdid|share_url|fs|sfnsn)=[^&#]*", "", url).replace("?&", "?").rstrip("?&")
+        if re.search(r"/share/|fb\.watch|fb\.me", url, re.I):  # share links give "HTTP 400" in yt-dlp: use the real page
+            url, fb_direct = facebook_preview(url)
     quality = pick_quality(body.get("quality"))
     ref_in = str(body.get("referer") or "").strip()
     if ref_in and (len(ref_in) > 2000 or not url_is_safe(ref_in)):
@@ -875,6 +912,15 @@ def fetch():
                 info = x_download(url, vid)
             except Exception as e:
                 err = err or e
+        if info is None and is_facebook(url):  # Facebook: public preview tags often hold the plain video file
+            try:
+                direct = fb_direct or facebook_preview(url)[1]
+                if direct:
+                    drop(vid)
+                    download_direct(direct, vid, "https://www.facebook.com/")
+                    info = {"title": "Facebook video", "thumbnail": None, "duration": None, "extractor_key": "Direct"}
+            except Exception as e6:
+                err = err or e6
         if info is None and is_reddit(url):  # Reddit: try the real video links found on the old.reddit page
             try:
                 for cu in reddit_candidates(url):
@@ -933,6 +979,8 @@ def fetch():
                 msg = "YouTube blocked this IP address (data-centre servers like Render are often blocked: sign-in / HTTP 429). The app already tried several YouTube client identities. Fix: run the Windows EXE on your own internet (works best), or add your YouTube cookies (COOKIES_B64 / cookies.txt), or set PROXY_URL to a residential proxy. Private, members-only and age-restricted videos always need cookies."
             elif re.search(r"reddit\.com|redd\.it", url.lower()) and re.search(r"login|log in|cookie|403|401|429|blocked|forbidden|nsfw|over 18|private|quarantin|too many|unable to download json|no video", msg, re.I):
                 msg = "Reddit refused this request (18+/NSFW posts, private or quarantined subreddits and some networks need a login). Log in to Reddit and try again: Android app = Settings (gear) > Login > Reddit; Windows = put your own cookies.txt (or a browser.txt containing the word firefox) next to the exe. Text/image posts without a video cannot be downloaded."
+            elif re.search(r"ffmpeg is not installed|ffmpeg not found|requested merging", msg, re.I):
+                msg = "This video is stored as separate picture and sound and needs ffmpeg to join them, but ffmpeg is not working in this app. On the phone open Settings (gear): if 'ffmpeg' says NO, build the apk again (the ffmpeg download step must be green) and use a 64-bit phone. Meanwhile choose 360p or MP3."
             elif re.search(r"facebook\.com|fb\.watch", url.lower()) and re.search(r"login|cookie|private|not available|permission|log in", msg, re.I):
                 msg = "Facebook says this video is not public (or wants a login). Public videos work. For friends-only or restricted ones add your cookies (COOKIES_B64 setting)."
             elif re.search(r"(twitter|x)\.com", url.lower()) and re.search(r"login|cookie|guest|sensitive|nsfw|age|protected|not authorized|no video|authentication", msg, re.I):

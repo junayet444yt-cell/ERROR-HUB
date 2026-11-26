@@ -61,11 +61,13 @@ runs:
       shell: bash
       run: |
         mkdir -p android/app/src/main/jniLibs/arm64-v8a
-        ( curl -L --retry 4 --retry-delay 5 -o ff.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz \
-          && tar -xJf ff.tar.xz \
-          && cp ffmpeg-*-arm64-static/ffmpeg android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so \
-          && chmod 755 android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so \
-          && ls -la android/app/src/main/jniLibs/arm64-v8a/ ) || echo "ffmpeg for the phone skipped"
+        OUT=android/app/src/main/jniLibs/arm64-v8a/libffmpeg.so
+        ( curl -fL --retry 4 --retry-delay 5 -o ffmpeg-arm64.gz https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-arm64.gz \
+          && gunzip -f ffmpeg-arm64.gz && cp ffmpeg-arm64 "$OUT" ) \
+        || ( curl -fL --retry 4 --retry-delay 5 -o ff.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz \
+          && tar -xJf ff.tar.xz && cp ffmpeg-*-arm64-static/ffmpeg "$OUT" ) \
+        || echo "ffmpeg for the phone could NOT be downloaded"
+        if [ -f "$OUT" ]; then chmod 755 "$OUT"; ls -la "$OUT"; file "$OUT" || true; else echo "::warning::no ffmpeg in the apk"; fi
         exit 0
 
     - name: Download QuickJS for the phone (small JavaScript engine that YouTube needs, optional)

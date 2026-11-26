@@ -136,3 +136,7 @@ v36: the Android app now also ships QuickJS (arm64), the small JavaScript engine
 
 v37: Reddit - a link to a subreddit/profile is refused with a clear message (paste the link of ONE post, it contains /comments/).
 If yt-dlp is refused, the app looks at the old.reddit.com page (with the "I am over 18" cookie, no login) for the real video (v.redd.it, RedGIFs, Streamable ...).
+
+v38: new mobile-first design (glass cards, scrolling quality chips, bottom-sheet settings, logo in the top bar).
+Facebook share links (facebook.com/share/...) are resolved to the real page and, if needed, the public preview video is used.
+Android: ffmpeg is downloaded from GitHub during the build; Settings shows whether ffmpeg / JavaScript work on the device.
