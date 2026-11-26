@@ -91,11 +91,21 @@ runs:
         } catch { Write-Host "installer skipped: $_" }
         exit 0
 
-    - name: Put the Windows files into the release
+    - name: Put the Windows files into the release (tries 3 times)
       if: ${{ always() }}
       shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.inputs.tag || github.ref_name }}
       run: |
         $files = @("ERROR-HUB-DOWNLODER.exe", "ERROR-HUB-DOWNLODER-Setup.exe", "ERROR-HUB-DOWNLODER-portable.zip") | Where-Object { Test-Path $_ }
+        Write-Host "release name:" $env:TAG
         Write-Host "uploading:" $files
         if (-not $files) { throw "no Windows file was built" }
-        gh release upload $env:TAG $files --clobber --repo $env:GITHUB_REPOSITORY
+        $ok = $false
+        for ($i = 1; $i -le 3; $i++) {
+          gh release upload $env:TAG $files --clobber --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+          Write-Host "attempt $i failed, waiting..."; Start-Sleep -Seconds 15
+        }
+        if (-not $ok) { throw "could not put the files into the release (they are still in this run's Artifacts)" }

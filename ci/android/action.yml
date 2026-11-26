@@ -82,15 +82,39 @@ runs:
       shell: bash
       run: gradle -p android assembleDebug --no-daemon --console=plain
 
-    - name: Name the file
+    - name: Find the apk and name it
       shell: bash
-      run: cp android/app/build/outputs/apk/debug/app-debug.apk ERROR-HUB-DOWNLODER.apk
+      run: |
+        find android/app/build/outputs -name "*.apk" -exec ls -la {} \;
+        APK=$(find android/app/build/outputs -name "*.apk" | head -n 1)
+        if [ -z "$APK" ]; then echo "::error::the build made no apk file"; exit 1; fi
+        cp "$APK" ERROR-HUB-DOWNLODER.apk
+        ls -la ERROR-HUB-DOWNLODER.apk
 
     - uses: actions/upload-artifact@v4
       with:
         name: android-apk
         path: ERROR-HUB-DOWNLODER.apk
 
-    - name: Put the apk into the release
+    - name: Put the apk into the release (tries 3 times)
       shell: bash
-      run: gh release upload "$TAG" ERROR-HUB-DOWNLODER.apk --clobber --repo "$GITHUB_REPOSITORY"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      run: |
+        echo "release name: $TAG"
+        ok=""
+        for i in 1 2 3; do
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "ERROR HUB DOWNLODER $TAG" --notes "Windows: ERROR-HUB-DOWNLODER.exe. Android: ERROR-HUB-DOWNLODER.apk." || true
+          if gh release upload "$TAG" ERROR-HUB-DOWNLODER.apk --clobber --repo "$GITHUB_REPOSITORY"; then ok=1; break; fi
+          echo "attempt $i failed, waiting..."; sleep 15
+        done
+        if [ -z "$ok" ]; then echo "::error::could not put the apk into the release. The apk is still in this run's Artifacts (bottom of the run page)."; exit 1; fi
+
+    - name: Show what the build made (only if something failed)
+      if: ${{ failure() }}
+      shell: bash
+      run: |
+        ls -la
+        find android/app/build -maxdepth 4 | head -50 || true
